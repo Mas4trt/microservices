@@ -1,0 +1,107 @@
+syntax = "proto3";
+
+package inventory.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/Mas4trt/microservices/shared/pkg/proto/v1;inventory_v1";
+
+// InventoryService предоставляет доступ к каталогу деталей,
+// используемых при сборке космических кораблей.
+service InventoryService {
+  // GetPart возвращает деталь по её уникальному идентификатору.
+  // Если деталь с указанным UUID не найдена, возвращается ошибка NOT_FOUND.
+  rpc GetPart(GetPartRequest) returns (GetPartResponse);
+}
+
+// Category определяет тип детали в каталоге.
+enum Category {
+  // Категория не указана. Используется как значение по умолчанию
+  // и не должна использоваться для описания реальной детали.
+  CATEGORY_UNSPECIFIED = 0;
+  //Двигатель
+  CATEGORY_ENGINE = 1;
+  //Топливо
+  CATEGORY_FUEL = 2;
+  //Иллюминатор
+  CATEGORY_PORTHOLE = 3;
+  //Крыло
+  CATEGORY_WING = 4;
+}
+
+// Dimensions описывает физические размеры детали.
+message Dimensions {
+  // Длина детали в сантиметрах.
+  double length = 1;
+  // Ширина детали в сантиметрах.
+  double width = 2;
+  // Высота детали в сантиметрах.
+  double height = 3;
+  // Вес детали в килограммах.
+  double weight = 4;
+}
+
+// Manufacturer описывает производителя детали.
+message Manufacturer {
+  // Название компании-производителя.
+  string name = 1;
+  // Страна, в которой произведена деталь.
+  string country = 2;
+  // URL официального сайта производителя.
+  string website = 3;
+}
+
+// Value представляет собой универсальное значение метаданных детали:
+// ровно одно из полей ниже должно быть установлено.
+message Value {
+  oneof value {
+    // Строковое значение.
+    string string_value = 1;
+    // Целое значение.
+    int64 int64_value = 2;
+    // Дробное значение.
+    double double_value = 3;
+    // Логическое значение.
+    bool bool_value = 4;
+  }
+}
+
+// Part описывает деталь, доступную в каталоге инвентаря.
+message Part {
+  // Уникальный идентификатор детали (UUID).
+  string uuid = 1;
+  // Название детали.
+  string name = 2;
+  // Описание детали.
+  string description = 3;
+  // Цена за единицу детали.
+  double price = 4;
+  // Количество единиц детали, доступных на складе.
+  int64 stock_quantity = 5;
+  // Категория, к которой относится деталь.
+  Category category = 6;
+  // Физические размеры детали.
+  Dimensions dimensions = 7;
+  // Информация о производителе детали.
+  Manufacturer manufacturer = 8;
+  // Теги, используемые для быстрого поиска детали в каталоге.
+  repeated string tags = 9;
+  // Произвольные метаданные детали в формате "ключ — значение".
+  map<string, Value> metadata = 10;
+  // Дата и время создания записи о детали.
+  google.protobuf.Timestamp created_at = 11;
+  // Дата и время последнего обновления записи о детали.
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// GetPartRequest — запрос на получение детали по её идентификатору.
+message GetPartRequest {
+  // UUID детали, которую требуется получить.
+  string uuid = 1;
+}
+
+// GetPartResponse — ответ с информацией о запрошенной детали.
+message GetPartResponse {
+  // Найденная деталь.
+  Part part = 1;
+}
