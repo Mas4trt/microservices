@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package payment.v1;
+
+option go_package = "github.com/Mas4trt/microservices/shared/pkg/proto/v1;payment_v1";
+
+// PaymentService provides payment processing operations for orders.
+service PaymentService {
+  // Processes a payment request for an order and returns the transaction identifier.
+  // The service does not persist payment state. Each successful request results 
+  // in a newly generated transaction UUID.
+  rpc PayOrder(PayOrderRequest) returns (PayOrderResponse);
+}
+
+// PaymentMethod identifies the payment method selected for an order.
+enum PaymentMethod {
+  // The payment method was not specified.
+  PAYMENT_METHOD_UNSPECIFIED = 0;
+
+  // Payment by bank card.
+  PAYMENT_METHOD_CARD = 1;
+
+  // Payment through the Fast Payments System (SBP).
+  PAYMENT_METHOD_SBP = 2;
+
+  // Payment by credit card.
+  PAYMENT_METHOD_CREDIT_CARD = 3;
+
+  // Payment using the investor's internal funds.
+  PAYMENT_METHOD_INVESTOR_MONEY = 4;
+}
+
+// PayOrderRequest contains the information required to process an order payment.
+message PayOrderRequest {
+  // The unique identifier of the order to be paid.
+  string order_uuid = 1;
+
+  // The unique identifier of the user initiating the payment. 
+  string user_uuid = 2;
+
+  // The payment method selected for the transaction.
+  PaymentMethod payment_method = 3;
+}
+
+// PayOrderResponse contains the result of a successful payment request.
+message PayOrderResponse {
+  // The unique identifier generated for the payment transaction.
+  string transaction_uuid = 1;
+}
