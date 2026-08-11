@@ -45,31 +45,30 @@ tasks:
 
   format:
     desc: "Форматирует весь проект gofumpt + gci, исключая mocks"
-    summary: |
-      Форматирует все Go-файлы проекта с использованием gofumpt для стандартизации кода
-      и gci для сортировки импортов, исключая файлы в директориях mocks.
-      
-      Использует инструменты:
-        - gofumpt: для стандартизации форматирования
-        - gci: для сортировки импортов по стандартным группам
     deps: [ install-formatters ]
     cmds:
       - |
         echo "🧼 Форматируем через gofumpt ..."
-        
         for module in {{.MODULES}}; do
           if [ -d "$module" ]; then
             echo "🧼 Форматируем $module"
-            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec {{.GOFUMPT}} -extra -w {} +
+            DIRS=$(cd "$module" && go list -f '{{`{{`}}.Dir{{`}}`}}' ./... 2>/dev/null | grep -v '/mocks/' | sort -u)
+            if [ -n "$DIRS" ]; then
+              echo "$DIRS" | xargs {{.GOFUMPT}} -extra -w
+            fi
           fi
         done
       - |
         echo "🎯 Сортируем импорты через gci ..."
-        
         for module in {{.MODULES}}; do
           if [ -d "$module" ]; then
             echo "🎯 Сортируем импорты в $module"
-            find $module -type f -name '*.go' ! -path '*/mocks/*' -exec {{.GCI}} write -s standard -s default -s "prefix(github.com/olezhek28/microservices-course-olezhek-solution)" {} +
+            (cd "$module" && go list -f '{{`{{`}}.Dir{{`}}`}}' ./... 2>/dev/null | grep -v '/mocks/' | sort -u) | while read -r dir; do
+              for f in "$dir"/*.go; do
+                [ -e "$f" ] || continue
+                {{.GCI}} write -s standard -s default -s "prefix(github.com/Mas4trt/microservices)" "$f"
+              done
+            done
           fi
         done
 
