@@ -154,3 +154,15 @@ tasks:
     dir: shared/proto
     cmds:
       - '{{.BUF}} generate'
+
+  deps:update:
+    desc: "Обновление зависимостей в go.mod во всех модулях"
+    cmds:
+      - |
+        echo "🔄 Обновление зависимостей в go.mod во всех модулях"
+        for mod in {{.MODULES}}; do
+          if [ -d "$mod" ]; then
+            echo "🔄 Обновление зависимостей в $mod"
+            (cd "$mod" && go mod tidy -compat=1.24) || exit 1
+          fi
+        done
