@@ -577,6 +577,7 @@ func (s *ValidationError) SetViolations(val []ValidationErrorViolationsItem) {
 }
 
 func (*ValidationError) createOrderRes() {}
+func (*ValidationError) payOrderRes()    {}
 
 type ValidationErrorViolationsItem struct {
 	Field   string `json:"field"`
