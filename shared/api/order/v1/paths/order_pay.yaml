@@ -19,6 +19,12 @@ post:
         application/json:
           schema:
             $ref: ../components/pay_order_response.yaml
+    '400':
+      description: Некорректные данные запроса
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/validation_error.yaml
     '404':
       description: Заказ не найден
       content:
