@@ -301,7 +301,6 @@ func (h *OrderHandler) PayOrder(ctx context.Context, req *orderV1.PayOrderReques
 		OrderUuid:     order.OrderUUID.String(),
 		PaymentMethod: paymentMethod,
 	})
-
 	if err != nil {
 		return &orderV1.PayOrderBadGateway{
 			Code:    "UPSTREAM_ERROR",
@@ -471,5 +470,4 @@ func main() {
 	}
 
 	log.Println("✅ Сервер остановлен")
-
 }
