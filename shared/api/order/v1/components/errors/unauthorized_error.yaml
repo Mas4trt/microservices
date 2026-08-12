@@ -1,0 +1,6 @@
+description: 401 Unauthorized — запрос не содержит валидных учётных данных
+allOf:
+  - $ref: ./generic_error.yaml
+example:
+  code: UNAUTHORIZED
+  message: authentication required

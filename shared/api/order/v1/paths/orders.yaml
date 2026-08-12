@@ -1,0 +1,48 @@
+post:
+  tags:
+    - Order
+  summary: Создать заказ
+  operationId: CreateOrder
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/create_order_request.yaml
+  responses:
+    '200':
+      description: Заказ успешно создан
+      content:
+        application/json:
+          schema:
+            $ref: ../components/create_order_response.yaml
+    '400':
+      description: Пустые обязательные поля запроса
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/validation_error.yaml
+    '404':
+      description: Одна или несколько деталей не найдены в InventoryService
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/not_found_error.yaml
+    '502':
+      description: InventoryService недоступен либо вернул ошибку
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/bad_gateway_error.yaml
+    '500':
+      description: Внутренняя ошибка сервиса
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/internal_server_error.yaml
+    default:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: ../components/errors/generic_error.yaml 

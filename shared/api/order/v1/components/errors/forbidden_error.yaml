@@ -1,0 +1,6 @@
+description: 403 Forbidden — аутентификация пройдена, но прав на операцию недостаточно
+allOf:
+  - $ref: ./generic_error.yaml
+example:
+  code: FORBIDDEN
+  message: not enough permissions to perform this action

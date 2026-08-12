@@ -1,0 +1,363 @@
+openapi: 3.0.3
+info:
+  title: OrderService API
+  version: 1.0.0
+  description: API для работы с данными о заказах на постройку космических кораблей
+tags:
+  - name: Order
+    description: Операции с заказами — создание, оплата, получение, отмена
+paths:
+  /api/v1/orders:
+    post:
+      tags:
+        - Order
+      summary: Создать заказ
+      operationId: CreateOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/create_order_request'
+      responses:
+        '200':
+          description: Заказ успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/create_order_response'
+        '400':
+          description: Пустые обязательные поля запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/validation_error'
+        '404':
+          description: Одна или несколько деталей не найдены в InventoryService
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/not_found_error'
+        '500':
+          description: Внутренняя ошибка сервиса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        '502':
+          description: InventoryService недоступен либо вернул ошибку
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bad_gateway_error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /api/v1/orders/{order_uuid}/pay:
+    parameters:
+      - $ref: '#/components/parameters/order_uuid'
+    post:
+      tags:
+        - Order
+      summary: Оплатить заказ
+      operationId: PayOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/pay_order_request'
+      responses:
+        '200':
+          description: Заказ успешно оплачен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/pay_order_response'
+        '404':
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/not_found_error'
+        '409':
+          description: Заказ уже оплачен или отменён — оплата невозможна
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/conflict_error'
+        '500':
+          description: Внутренняя ошибка сервиса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        '502':
+          description: PaymentService недоступен либо вернул ошибку
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/bad_gateway_error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /api/v1/orders/{order_uuid}:
+    parameters:
+      - $ref: '#/components/parameters/order_uuid'
+    get:
+      tags:
+        - Order
+      summary: Получить заказ по UUID
+      operationId: GetOrder
+      responses:
+        '200':
+          description: Заказ найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/order_dto'
+        '404':
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/not_found_error'
+        '500':
+          description: Внутренняя ошибка сервиса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+  /api/v1/orders/{order_uuid}/cancel:
+    parameters:
+      - $ref: '#/components/parameters/order_uuid'
+    post:
+      tags:
+        - Order
+      summary: Отменить заказ
+      operationId: CancelOrder
+      responses:
+        '204':
+          description: Заказ успешно отменён
+        '404':
+          description: Заказ не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/not_found_error'
+        '409':
+          description: Заказ уже оплачен и не может быть отменён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/conflict_error'
+        '500':
+          description: Внутренняя ошибка сервиса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/internal_server_error'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/generic_error'
+components:
+  schemas:
+    create_order_request:
+      type: object
+      required:
+        - user_uuid
+        - part_uuids
+      properties:
+        user_uuid:
+          type: string
+          format: uuid
+          description: UUID пользователя, оформляющего заказ
+        part_uuids:
+          type: array
+          description: Список UUID деталей, выбранных пользователем
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+    generic_error:
+      type: object
+      description: Базовая форма ошибки, общая для всех кодов ответа
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Машиночитаемый код ошибки (например ORDER_NOT_FOUND)
+        message:
+          type: string
+          description: Человекочитаемое описание ошибки
+    create_order_response:
+      type: object
+      required:
+        - order_uuid
+        - total_price
+      properties:
+        order_uuid:
+          type: string
+          format: uuid
+        total_price:
+          type: number
+          format: double
+          example: 123.45
+    validation_error:
+      description: 400 Bad Request — данные не прошли валидацию по схеме или бизнес-правилам
+      allOf:
+        - $ref: '#/components/schemas/generic_error'
+        - type: object
+          properties:
+            violations:
+              type: array
+              description: Список нарушений по конкретным полям
+              items:
+                type: object
+                required:
+                  - field
+                  - message
+                properties:
+                  field:
+                    type: string
+                    example: part_uuids
+                  message:
+                    type: string
+                    example: must contain at least 1 item
+      example:
+        code: VALIDATION_ERROR
+        message: request validation failed
+        violations:
+          - field: part_uuids
+            message: must contain at least 1 item
+    not_found_error:
+      description: 404 Not Found — запрошенный заказ или деталь не найдены
+      allOf:
+        - $ref: '#/components/schemas/generic_error'
+      example:
+        code: ORDER_NOT_FOUND
+        message: order not found
+    internal_server_error:
+      description: 500 Internal Server Error — непредвиденная ошибка на стороне OrderService
+      allOf:
+        - $ref: '#/components/schemas/generic_error'
+      example:
+        code: INTERNAL_ERROR
+        message: unexpected error, try again later
+    bad_gateway_error:
+      description: 502 Bad Gateway — InventoryService или PaymentService вернули ошибку либо недоступны
+      allOf:
+        - $ref: '#/components/schemas/generic_error'
+      example:
+        code: UPSTREAM_ERROR
+        message: inventory service is unavailable
+    payment_method:
+      type: string
+      description: Способ оплаты заказа
+      enum:
+        - UNKNOWN
+        - CARD
+        - SBP
+        - CREDIT_CARD
+        - INVESTOR_MONEY
+      x-ogen:
+        enum:
+          strict: true
+    pay_order_request:
+      type: object
+      required:
+        - payment_method
+      properties:
+        payment_method:
+          $ref: '#/components/schemas/payment_method'
+    pay_order_response:
+      type: object
+      required:
+        - transaction_uuid
+      properties:
+        transaction_uuid:
+          type: string
+          format: uuid
+    conflict_error:
+      description: 409 Conflict — операция несовместима с текущим статусом заказа
+      allOf:
+        - $ref: '#/components/schemas/generic_error'
+      example:
+        code: ORDER_ALREADY_PAID
+        message: order is already paid and cannot be cancelled
+    order_status:
+      type: string
+      description: Статус заказа
+      enum:
+        - PENDING_PAYMENT
+        - PAID
+        - CANCELLED
+      x-ogen:
+        enum:
+          strict: true
+    order_dto:
+      type: object
+      description: Информация о заказе
+      required:
+        - order_uuid
+        - user_uuid
+        - part_uuids
+        - total_price
+        - status
+      properties:
+        order_uuid:
+          type: string
+          format: uuid
+        user_uuid:
+          type: string
+          format: uuid
+        part_uuids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        total_price:
+          type: number
+          format: double
+        transaction_uuid:
+          type: string
+          format: uuid
+          nullable: true
+          description: Заполняется только после оплаты
+        payment_method:
+          allOf:
+            - $ref: '#/components/schemas/payment_method'
+          nullable: true
+          description: Заполняется только после оплаты
+        status:
+          $ref: '#/components/schemas/order_status'
+  parameters:
+    order_uuid:
+      name: order_uuid
+      in: path
+      required: true
+      description: UUID заказа
+      schema:
+        type: string
+        format: uuid
+x-ogen:
+  target: ./shared/pkg/openapi/order/v1
+  package: order_v1
+  clean: true

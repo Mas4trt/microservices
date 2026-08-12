@@ -1,0 +1,12 @@
+description: 503 Service Unavailable — сервис временно не может обработать запрос
+allOf:
+  - $ref: ./generic_error.yaml
+  - type: object
+    properties:
+      retry_after_seconds:
+        type: integer
+        example: 30
+example:
+  code: SERVICE_UNAVAILABLE
+  message: service is temporarily unavailable
+  retry_after_seconds: 30

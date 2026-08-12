@@ -1,0 +1,12 @@
+type: object
+required:
+  - order_uuid
+  - total_price
+properties:
+  order_uuid:
+    type: string
+    format: uuid
+  total_price:
+    type: number
+    format: double
+    example: 123.45

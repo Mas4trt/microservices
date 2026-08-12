@@ -1,0 +1,7 @@
+description: 502 Bad Gateway — InventoryService или PaymentService вернули ошибку либо недоступны
+allOf:
+  - $ref: ./generic_error.yaml
+example:
+  code: UPSTREAM_ERROR
+  message: inventory service is unavailable
+

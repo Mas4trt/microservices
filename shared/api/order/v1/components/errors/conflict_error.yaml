@@ -1,0 +1,6 @@
+description: 409 Conflict — операция несовместима с текущим статусом заказа
+allOf:
+  - $ref: ./generic_error.yaml
+example:
+  code: ORDER_ALREADY_PAID
+  message: order is already paid and cannot be cancelled

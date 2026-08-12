@@ -1,0 +1,13 @@
+description: 429 Too Many Requests — превышен лимит запросов
+allOf:
+  - $ref: ./generic_error.yaml
+  - type: object
+    properties:
+      retry_after_seconds:
+        type: integer
+        description: Через сколько секунд можно повторить запрос
+        example: 5
+example:
+  code: RATE_LIMIT_EXCEEDED
+  message: too many requests
+  retry_after_seconds: 5

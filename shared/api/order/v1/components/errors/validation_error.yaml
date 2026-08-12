@@ -1,0 +1,26 @@
+description: 400 Bad Request — данные не прошли валидацию по схеме или бизнес-правилам
+allOf:
+  - $ref: ./generic_error.yaml
+  - type: object
+    properties:
+      violations:
+        type: array
+        description: Список нарушений по конкретным полям
+        items:
+          type: object
+          required:
+            - field
+            - message
+          properties:
+            field:
+              type: string
+              example: part_uuids
+            message:
+              type: string
+              example: must contain at least 1 item
+example:
+  code: VALIDATION_ERROR
+  message: request validation failed
+  violations:
+    - field: part_uuids
+      message: must contain at least 1 item

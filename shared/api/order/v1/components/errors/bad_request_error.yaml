@@ -1,0 +1,6 @@
+description: 400 Bad Request — синтаксически некорректный запрос
+allOf:
+  - $ref: ./generic_error.yaml
+example:
+  code: BAD_REQUEST
+  message: user_uuid is required

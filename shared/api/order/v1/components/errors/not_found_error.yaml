@@ -1,0 +1,6 @@
+description: 404 Not Found — запрошенный заказ или деталь не найдены
+allOf:
+  - $ref: ./generic_error.yaml
+example:
+  code: ORDER_NOT_FOUND
+  message: order not found

@@ -1,0 +1,6 @@
+description: 500 Internal Server Error — непредвиденная ошибка на стороне OrderService
+allOf:
+  - $ref: ./generic_error.yaml
+example:
+  code: INTERNAL_ERROR
+  message: unexpected error, try again later
