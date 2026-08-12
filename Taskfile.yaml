@@ -10,6 +10,7 @@ vars:
   PROTOC_GEN_GO_GRPC_VERSION: 'v1.5.1'
   OGEN_VERSION: 'v1.12.0'
   YQ_VERSION: 'v4.45.2'
+  GRPCURL_VERSION: 'v1.9.3'
 
   BIN_DIR: '{{.ROOT_DIR}}/bin'
   GOLANGCI_LINT: '{{.BIN_DIR}}/golangci-lint'
@@ -20,6 +21,7 @@ vars:
   YQ: '{{.BIN_DIR}}/yq'
   PROTOC_GEN_GO: '{{.BIN_DIR}}/protoc-gen-go'
   PROTOC_GEN_GO_GRPC: '{{.BIN_DIR}}/protoc-gen-go-grpc'
+  GRPCURL: '{{.BIN_DIR}}/grpcurl'
 
   NODE_MODULES_DIR: '{{.ROOT_DIR}}/node_modules/.bin'
   REDOCLY: '{{.NODE_MODULES_DIR}}/redocly'
@@ -249,3 +251,320 @@ tasks:
           echo '📦 Installing yq...'
           GOBIN={{.BIN_DIR}} go install github.com/mikefarah/yq/v4@{{.YQ_VERSION}}
         }
+  
+  grpcurl:install:
+    desc: "Устанавливает grpcurl в каталог bin"
+    cmds:
+      - |
+        [ -f {{.GRPCURL}} ] || {
+          echo '📦 Устанавливаем grpcurl {{.GRPCURL_VERSION}}...'
+          GOBIN={{.BIN_DIR}} go install github.com/fullstorydev/grpcurl/cmd/grpcurl@{{.GRPCURL_VERSION}}
+        }
+    status:
+      - test -x {{.GRPCURL}}
+  test-api:
+    desc: "🧪 Запуск тестов для проверки API микросервисов"
+    deps: [grpcurl:install]
+    cmds:
+      - |
+        set -e
+
+        echo "🧪 Тестирование API микросервисов через gRPC и REST"
+
+        echo "📦 Тест 1: Получение списка деталей из Inventory"
+        PARTS_RESPONSE=$({{.GRPCURL}} -plaintext \
+          -d '{"filter":{}}' \
+          localhost:50050 \
+          inventory.v1.InventoryService/ListParts)
+
+        if [[ -z "$PARTS_RESPONSE" ]] || echo "$PARTS_RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+          echo "❌ Не удалось получить список деталей."
+          echo "🔍 Ответ сервера: $PARTS_RESPONSE"
+          exit 1
+        fi
+
+        # Извлекаем UUID первой детали
+        PART_UUID=$(printf '%s' "$PARTS_RESPONSE" | jq -r '.parts[0].uuid // empty' | tr -d '\r\n')
+
+        if [[ -z "$PART_UUID" ]]; then
+          echo "❌ Не удалось найти UUID детали в ответе."
+          echo "🔍 Ответ сервера:"
+          echo "$PARTS_RESPONSE" | jq .
+          exit 1
+        fi
+
+        echo "✅ Успешно получен список деталей, первая UUID: $PART_UUID"
+
+
+        echo
+        echo "🔍 Тест 2: Получение информации о детали по UUID"
+
+        PART_RESPONSE=$({{.GRPCURL}} -plaintext \
+          -d "{\"uuid\":\"$PART_UUID\"}" \
+          localhost:50050 \
+          inventory.v1.InventoryService/GetPart)
+
+        if [[ -z "$PART_RESPONSE" ]] || echo "$PART_RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+          echo "❌ Не удалось получить информацию о детали."
+          echo "🔍 Ответ сервера: $PART_RESPONSE"
+          exit 1
+        fi
+
+        PART_NAME=$(printf '%s' "$PART_RESPONSE" | jq -r '.part.name // empty')
+        if [[ -z "$PART_NAME" ]]; then
+          echo "❌ Не удалось извлечь имя детали из ответа."
+          echo "🔍 Ответ сервера:"
+          echo "$PART_RESPONSE" | jq .
+          exit 1
+        fi
+
+        echo "✅ Успешно получена деталь: $PART_NAME"
+
+
+        echo
+        echo "👤 Тест 3: Создание пользователя для тестов"
+
+        if command -v uuidgen >/dev/null 2>&1; then
+          USER_UUID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+        elif command -v openssl >/dev/null 2>&1; then
+          USER_UUID=$(openssl rand -hex 16 | sed 's/^\(........\)\(....\)\(....\)\(....\)\(............\)$/\1-\2-\3-\4-\5/')
+        else
+          echo "❌ Не найден uuidgen или openssl"
+          exit 1
+        fi
+
+        if [[ -z "$USER_UUID" ]]; then
+          echo "❌ Не удалось сгенерировать UUID пользователя"
+          exit 1
+        fi
+
+
+        echo "✅ Сгенерирован UUID пользователя: $USER_UUID"
+
+
+        echo
+        echo "📝 Тест 4: Создание заказа (REST API)"
+
+        ORDER_RESPONSE=$(curl -sS -f -X POST \
+          "http://localhost:8080/api/v1/orders" \
+          -H "Content-Type: application/json" \
+          -d "{\"user_uuid\":\"$USER_UUID\",\"part_uuids\":[\"$PART_UUID\"]}") || {
+            echo "❌ Не удалось создать заказ."
+            echo "🔍 Ответ сервера: $ORDER_RESPONSE"
+            exit 1
+          }
+
+        if echo "$ORDER_RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+          echo "❌ Не удалось создать заказ."
+          echo "🔍 Ответ сервера: $ORDER_RESPONSE"
+          exit 1
+        fi
+
+        ORDER_UUID=$(echo "$ORDER_RESPONSE" | jq -r '.order_uuid // empty')
+
+        if [[ -z "$ORDER_UUID" ]]; then
+          echo "❌ Не удалось извлечь UUID заказа из ответа."
+          echo "🔍 Ответ сервера:"
+          echo "$ORDER_RESPONSE" | jq .
+          exit 1
+        fi
+
+        echo "✅ Успешно создан заказ с UUID: $ORDER_UUID"
+
+
+        echo
+        echo "📊 Тест 5: Проверка начального статуса заказа (должен быть PENDING_PAYMENT)"
+
+        # Убираем случайные пробелы/переводы строк
+        ORDER_UUID="$(printf '%s' "$ORDER_UUID" | tr -d '\r\n' | xargs)"
+
+        if [[ -z "$ORDER_UUID" ]]; then
+          echo "❌ ORDER_UUID пустой."
+          exit 1
+        fi
+
+        echo "🔍 Проверяем заказ: [$ORDER_UUID]"
+
+        ORDER_INFO_RESPONSE=$(curl -sS -f \
+          -X GET \
+          "http://localhost:8080/api/v1/orders/${ORDER_UUID}") || {
+            echo "❌ Не удалось получить информацию о заказе."
+            echo "🔍 Ответ сервера: $ORDER_INFO_RESPONSE"
+            exit 1
+          }
+
+        ORDER_STATUS=$(echo "$ORDER_INFO_RESPONSE" | jq -r '.status // empty')
+
+        if [[ -z "$ORDER_STATUS" ]]; then
+          echo "❌ Не удалось извлечь статус заказа из ответа."
+          echo "🔍 Ответ сервера:"
+          echo "$ORDER_INFO_RESPONSE" | jq .
+          exit 1
+        fi
+
+        ORDER_STATUS=$(echo "$ORDER_INFO_RESPONSE" | jq -r '.status // empty' | tr -d '\r\n')
+
+        if [[ "$ORDER_STATUS" != "PENDING_PAYMENT" ]]; then
+          echo "❌ Неверный начальный статус заказа."
+          echo "Ожидался: PENDING_PAYMENT"
+          echo "Получен: $ORDER_STATUS"
+          exit 1
+        fi
+
+        echo "✅ Начальный статус заказа корректный: $ORDER_STATUS"
+
+
+        echo
+        echo "💰 Тест 6: Оплата заказа (REST API)"
+
+        echo "🔍 ORDER_UUID перед оплатой: [$ORDER_UUID]"
+
+        if [[ -z "$ORDER_UUID" ]]; then
+          echo "❌ ORDER_UUID пустой перед оплатой!"
+          exit 1
+        fi
+
+        PAY_RESPONSE=$(curl -sS \
+          -X POST \
+          "http://localhost:8080/api/v1/orders/${ORDER_UUID}/pay" \
+          -H "Content-Type: application/json" \
+          -d '{"payment_method":"CARD"}') || {
+            echo "❌ Ошибка при оплате заказа."
+            echo "🔍 Ответ сервера: $PAY_RESPONSE"
+            exit 1
+          }
+
+        if echo "$PAY_RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+          echo "❌ Ошибка при оплате заказа."
+          echo "🔍 Ответ сервера: $PAY_RESPONSE"
+          exit 1
+        fi
+
+        echo "✅ Заказ успешно оплачен"
+
+
+        echo
+        echo "📊 Тест 7: Проверка статуса после оплаты (должен быть PAID)"
+
+        ORDER_INFO_RESPONSE=$(curl -sS -f \
+          -X GET \
+          "http://localhost:8080/api/v1/orders/$ORDER_UUID") || {
+            echo "❌ Не удалось получить информацию о заказе после оплаты."
+            echo "🔍 Ответ сервера: $ORDER_INFO_RESPONSE"
+            exit 1
+          }
+
+        ORDER_STATUS="$(echo "$ORDER_INFO_RESPONSE" | jq -r '.status // empty' | tr -d '\r\n' | xargs)"
+
+        if [[ "$ORDER_STATUS" != "PAID" && "$ORDER_STATUS" != "ASSEMBLED" ]]; then
+          echo "❌ Неверный статус заказа после оплаты."
+          echo "Ожидался: PAID или ASSEMBLED"
+          echo "Получен: $ORDER_STATUS"
+          echo "🔍 Детали заказа:"
+          echo "$ORDER_INFO_RESPONSE" | jq .
+          exit 1
+        fi
+
+        echo "✅ Статус заказа после оплаты: $ORDER_STATUS"
+
+
+        echo
+        echo "📝 Тест 8: Создание второго заказа для отмены (REST API)"
+
+        ORDER2_RESPONSE=$(curl -sS -f \
+          -X POST \
+          "http://localhost:8080/api/v1/orders" \
+          -H "Content-Type: application/json" \
+          -d "{\"user_uuid\":\"$USER_UUID\",\"part_uuids\":[\"$PART_UUID\"]}") || {
+            echo "❌ Не удалось создать второй заказ."
+            echo "🔍 Ответ сервера: $ORDER2_RESPONSE"
+            exit 1
+          }
+
+        if echo "$ORDER2_RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+          echo "❌ Не удалось создать второй заказ."
+          echo "🔍 Ответ сервера: $ORDER2_RESPONSE"
+          exit 1
+        fi
+
+        ORDER2_UUID=$(echo "$ORDER2_RESPONSE" | jq -r '.order_uuid // empty')
+
+        if [[ -z "$ORDER2_UUID" ]]; then
+          echo "❌ Не удалось извлечь UUID второго заказа из ответа."
+          echo "🔍 Ответ сервера:"
+          echo "$ORDER2_RESPONSE" | jq .
+          exit 1
+        fi
+
+        echo "✅ Успешно создан второй заказ с UUID: $ORDER2_UUID"
+
+
+        echo
+        echo "📊 Проверка начального статуса второго заказа"
+
+        ORDER2_UUID="$(printf '%s' "$ORDER2_UUID" | tr -d '\r\n' | xargs)"
+
+        ORDER2_INFO=$(curl -sS -f \
+          -X GET \
+          "http://localhost:8080/api/v1/orders/${ORDER2_UUID}") || {
+            echo "❌ Не удалось получить второй заказ."
+            echo "🔍 Ответ сервера: $ORDER2_INFO"
+            exit 1
+          }
+
+        ORDER2_STATUS="$(printf '%s' "$ORDER2_INFO" | jq -r '.status // empty' | tr -d '\r\n' | xargs)"
+
+        if [[ "$ORDER2_STATUS" != "PENDING_PAYMENT" ]]; then
+          echo "❌ Неверный начальный статус второго заказа."
+          echo "Ожидался: PENDING_PAYMENT"
+          echo "Получен: $ORDER2_STATUS"
+          exit 1
+        fi
+
+        echo "✅ Начальный статус второго заказа: $ORDER2_STATUS"
+
+
+        echo
+        echo "❌ Тест 9: Отмена второго заказа (REST API)"
+
+        echo "Ожидаем 2 секунды перед отменой..."
+        sleep 2
+
+        CANCEL_RESPONSE=$(curl -sS -f \
+          -X POST \
+          "http://localhost:8080/api/v1/orders/$ORDER2_UUID/cancel") || {
+            echo "❌ Не удалось отменить второй заказ."
+            echo "🔍 Ответ сервера: $CANCEL_RESPONSE"
+            exit 1
+          }
+
+        if echo "$CANCEL_RESPONSE" | jq -e '.error' >/dev/null 2>&1; then
+          echo "❌ Ошибка при отмене заказа."
+          echo "🔍 Ответ сервера: $CANCEL_RESPONSE"
+          exit 1
+        fi
+
+        echo "Проверяем статус после отмены..."
+
+        ORDER2_INFO=$(curl -sS -f \
+          -X GET \
+          "http://localhost:8080/api/v1/orders/$ORDER2_UUID") || {
+            echo "❌ Не удалось получить второй заказ после отмены."
+            echo "🔍 Ответ сервера: $ORDER2_INFO"
+            exit 1
+          }
+
+        if ! printf '%s' "$ORDER2_INFO" | jq -e '.status == "CANCELLED"' >/dev/null; then
+          echo "❌ Неверный статус отмененного заказа."
+          echo "Ожидался: CANCELLED"
+          echo "Получен: $(printf '%s' "$ORDER2_INFO" | jq -r '.status // empty')"
+          echo "🔍 Детали заказа:"
+          printf '%s\n' "$ORDER2_INFO" | jq .
+          exit 1
+        fi
+
+        echo "✅ Статус второго заказа после отмены: $ORDER2_STATUS"
+
+
+        echo
+        echo "🎉 Все тесты API успешно выполнены!"
