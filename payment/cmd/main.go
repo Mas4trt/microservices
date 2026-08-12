@@ -10,10 +10,10 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
-
-	paymentV1 "github.com/Mas4trt/microservices/shared/pkg/proto/payment/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	paymentV1 "github.com/Mas4trt/microservices/shared/pkg/proto/payment/v1"
 )
 
 const grpcPort = 50051
