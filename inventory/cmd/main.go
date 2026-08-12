@@ -22,14 +22,14 @@ import (
 
 const grpcPort = 50050
 
-type inventoryService struct {
+type InventoryService struct {
 	inventoryV1.UnimplementedInventoryServiceServer
 
 	mu    sync.RWMutex
 	parts map[string]*inventoryV1.Part
 }
 
-func (s *inventoryService) GetPart(_ context.Context, req *inventoryV1.GetPartRequest) (*inventoryV1.GetPartResponse, error) {
+func (s *InventoryService) GetPart(_ context.Context, req *inventoryV1.GetPartRequest) (*inventoryV1.GetPartResponse, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -43,7 +43,7 @@ func (s *inventoryService) GetPart(_ context.Context, req *inventoryV1.GetPartRe
 	}, nil
 }
 
-func (s *inventoryService) ListParts(_ context.Context, req *inventoryV1.ListPartsRequest) (*inventoryV1.ListPartsResponse, error) {
+func (s *InventoryService) ListParts(_ context.Context, req *inventoryV1.ListPartsRequest) (*inventoryV1.ListPartsResponse, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -148,8 +148,8 @@ func seedParts() map[string]*inventoryV1.Part {
 	now := timestamppb.Now()
 
 	return map[string]*inventoryV1.Part{
-		"engine-1": {
-			Uuid:          "engine-1",
+		"550e8400-e29b-41d4-a716-446655440000": {
+			Uuid:          "550e8400-e29b-41d4-a716-446655440000",
 			Name:          "Main Booster Engine",
 			Description:   "Основной маршевый двигатель первой ступени",
 			Price:         1_250_000.0,
@@ -171,8 +171,8 @@ func seedParts() map[string]*inventoryV1.Part {
 			CreatedAt: now,
 			UpdatedAt: now,
 		},
-		"fuel-1": {
-			Uuid:          "fuel-1",
+		"f47ac10b-58cc-4372-a567-0e02b2c3d479": {
+			Uuid:          "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 			Name:          "Cryo Fuel Tank",
 			Description:   "Криогенный топливный бак",
 			Price:         340_000.0,
@@ -210,7 +210,7 @@ func main() {
 
 	s := grpc.NewServer()
 
-	service := &inventoryService{
+	service := &InventoryService{
 		parts: seedParts(),
 	}
 
