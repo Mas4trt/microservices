@@ -43,7 +43,7 @@ func main() {
 	defer inventoryConn.Close()
 
 	inventoryGRPCClient := inventoryV1.NewInventoryServiceClient(inventoryConn)
-	inventoryClient := inventoryClient.NewClient(inventoryGRPCClient)
+	invClient := inventoryClient.NewClient(inventoryGRPCClient)
 
 	paymentConn, err := grpc.NewClient(
 		"localhost:50051",
@@ -55,11 +55,11 @@ func main() {
 	defer paymentConn.Close()
 
 	paymentGRPCClient := paymentV1.NewPaymentServiceClient(paymentConn)
-	paymentClient := paymentClient.NewClient(paymentGRPCClient)
+	payClient := paymentClient.NewClient(paymentGRPCClient)
 
 	repo := orderRepository.NewRepository()
-	service := orderService.NewService(repo, inventoryClient, paymentClient)
-	orderHandler := orderHandler.NewOrderHandler(service)
+	orderSvc := orderService.NewService(repo, invClient, payClient)
+	orderHandler := orderHandler.NewOrderHandler(orderSvc)
 
 	orderServer, err := orderV1.NewServer(orderHandler)
 	if err != nil {

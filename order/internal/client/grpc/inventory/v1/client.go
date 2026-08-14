@@ -2,16 +2,16 @@ package v1
 
 import (
 	def "github.com/Mas4trt/microservices/order/internal/client/grpc"
-	generatedInventoryV1 "github.com/Mas4trt/microservices/shared/pkg/proto/inventory/v1"
+	inventoryV1 "github.com/Mas4trt/microservices/shared/pkg/proto/inventory/v1"
 )
 
 var _ def.InventoryClient = (*client)(nil)
 
 type client struct {
-	generatedClient generatedInventoryV1.InventoryServiceClient
+	generatedClient inventoryV1.InventoryServiceClient
 }
 
-func NewClient(generatedClient generatedInventoryV1.InventoryServiceClient) *client {
+func NewClient(generatedClient inventoryV1.InventoryServiceClient) *client {
 	return &client{
 		generatedClient: generatedClient,
 	}

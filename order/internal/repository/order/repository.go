@@ -3,9 +3,10 @@ package order
 import (
 	"sync"
 
+	"github.com/google/uuid"
+
 	def "github.com/Mas4trt/microservices/order/internal/repository"
 	repoModel "github.com/Mas4trt/microservices/order/internal/repository/model"
-	"github.com/google/uuid"
 )
 
 var _ def.OrderRepository = (*repository)(nil)

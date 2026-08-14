@@ -4,19 +4,20 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Mas4trt/microservices/order/internal/model"
-	generatedPaymentV1 "github.com/Mas4trt/microservices/shared/pkg/proto/payment/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/Mas4trt/microservices/order/internal/model"
+	paymentV1 "github.com/Mas4trt/microservices/shared/pkg/proto/payment/v1"
 )
 
-func (c *client) PayOrder(ctx context.Context, userUuid string, orderUuid string, paymentMethod model.PaymentMethod) (string, error) {
+func (c *client) PayOrder(ctx context.Context, userUuid, orderUuid string, paymentMethod model.PaymentMethod) (string, error) {
 	protoMethod, err := PaymentMethodToProto(paymentMethod)
 	if err != nil {
 		return "", err
 	}
 
-	res, err := c.generatedClient.PayOrder(ctx, &generatedPaymentV1.PayOrderRequest{
+	res, err := c.generatedClient.PayOrder(ctx, &paymentV1.PayOrderRequest{
 		UserUuid:      userUuid,
 		OrderUuid:     orderUuid,
 		PaymentMethod: protoMethod,
@@ -44,17 +45,17 @@ func mapPaymentErr(err error) error {
 	}
 }
 
-func PaymentMethodToProto(method model.PaymentMethod) (generatedPaymentV1.PaymentMethod, error) {
+func PaymentMethodToProto(method model.PaymentMethod) (paymentV1.PaymentMethod, error) {
 	switch method {
 	case model.PaymentMethodCARD:
-		return generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_CARD, nil
+		return paymentV1.PaymentMethod_PAYMENT_METHOD_CARD, nil
 	case model.PaymentMethodSBP:
-		return generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_SBP, nil
+		return paymentV1.PaymentMethod_PAYMENT_METHOD_SBP, nil
 	case model.PaymentMethodCREDITCARD:
-		return generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_CREDIT_CARD, nil
+		return paymentV1.PaymentMethod_PAYMENT_METHOD_CREDIT_CARD, nil
 	case model.PaymentMethodINVESTORMONEY:
-		return generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_INVESTOR_MONEY, nil
+		return paymentV1.PaymentMethod_PAYMENT_METHOD_INVESTOR_MONEY, nil
 	default:
-		return generatedPaymentV1.PaymentMethod_PAYMENT_METHOD_UNSPECIFIED, model.ErrInvalidPaymentMethod
+		return paymentV1.PaymentMethod_PAYMENT_METHOD_UNSPECIFIED, model.ErrInvalidPaymentMethod
 	}
 }

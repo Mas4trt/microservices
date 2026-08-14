@@ -2,16 +2,16 @@ package v1
 
 import (
 	def "github.com/Mas4trt/microservices/order/internal/client/grpc"
-	generatedPaymentV1 "github.com/Mas4trt/microservices/shared/pkg/proto/payment/v1"
+	paymentV1 "github.com/Mas4trt/microservices/shared/pkg/proto/payment/v1"
 )
 
 var _ def.PaymentClient = (*client)(nil)
 
 type client struct {
-	generatedClient generatedPaymentV1.PaymentServiceClient
+	generatedClient paymentV1.PaymentServiceClient
 }
 
-func NewClient(generatedClient generatedPaymentV1.PaymentServiceClient) *client {
+func NewClient(generatedClient paymentV1.PaymentServiceClient) *client {
 	return &client{
 		generatedClient: generatedClient,
 	}
