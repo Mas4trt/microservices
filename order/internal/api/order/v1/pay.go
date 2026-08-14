@@ -4,17 +4,11 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Mas4trt/microservices/order/internal/api/validation"
 	"github.com/Mas4trt/microservices/order/internal/model"
 	orderV1 "github.com/Mas4trt/microservices/shared/pkg/openapi/order/v1"
 )
 
 func (a *api) PayOrder(ctx context.Context, req *orderV1.PayOrderRequest, params orderV1.PayOrderParams) (orderV1.PayOrderRes, error) {
-	// If req = nil Validate return validate.ErrNilPointer
-	if err := req.Validate(); err != nil {
-		return validation.ValidationError(err), nil
-	}
-
 	resp, err := a.orderService.Pay(ctx, params.OrderUUID, model.PaymentMethod(req.PaymentMethod))
 	if err != nil {
 		return payOrderError(err), nil
@@ -61,6 +55,12 @@ func payOrderError(err error) orderV1.PayOrderRes {
 		return &orderV1.PayOrderBadGateway{
 			Code:    "UPSTREAM_ERROR",
 			Message: "payment service is unavailable",
+		}
+
+	case errors.Is(err, model.ErrPaymentInternal):
+		return &orderV1.PayOrderInternalServerError{
+			Code:    "INTERNAL_ERROR",
+			Message: "internal server error",
 		}
 
 	default:
