@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Mas4trt/microservices/order/internal/model"
 	"github.com/google/uuid"
@@ -10,7 +11,10 @@ import (
 func (s *service) Cancel(ctx context.Context, orderUUID uuid.UUID) error {
 	order, err := s.orderRepository.Get(ctx, orderUUID)
 	if err != nil {
-		return model.ErrOrderNotFound
+		if errors.Is(err, model.ErrOrderNotFound) {
+			return model.ErrOrderNotFound
+		}
+		return err
 	}
 
 	switch order.Status {
@@ -22,6 +26,8 @@ func (s *service) Cancel(ctx context.Context, orderUUID uuid.UUID) error {
 	case model.OrderStatusCANCELLED:
 		return model.ErrOrderAlreadyCancelled
 	default:
+		// Защитная ветка: срабатывает только если в OrderStatus добавят
+		// новое значение и забудут обработать его здесь явно.
 		return model.ErrInvalidOrderStatus
 	}
 }

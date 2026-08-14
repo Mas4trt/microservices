@@ -2,6 +2,7 @@ package order
 
 import (
 	"context"
+	"errors"
 
 	"github.com/Mas4trt/microservices/order/internal/model"
 	"github.com/google/uuid"
@@ -10,7 +11,10 @@ import (
 func (s *service) Get(ctx context.Context, orderUUID uuid.UUID) (model.OrderDto, error) {
 	order, err := s.orderRepository.Get(ctx, orderUUID)
 	if err != nil {
-		return model.OrderDto{}, model.ErrOrderNotFound
+		if errors.Is(err, model.ErrOrderNotFound) {
+			return model.OrderDto{}, model.ErrOrderNotFound
+		}
+		return model.OrderDto{}, err
 	}
 
 	return order, nil
