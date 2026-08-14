@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Mas4trt/microservices/order/internal/model"
 	"github.com/google/uuid"
+
+	"github.com/Mas4trt/microservices/order/internal/model"
 )
 
 func (s *service) Create(ctx context.Context, userUUID uuid.UUID, partUUIDs []uuid.UUID) (uuid.UUID, float64, error) {

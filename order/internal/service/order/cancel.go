@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/Mas4trt/microservices/order/internal/model"
 	"github.com/google/uuid"
+
+	"github.com/Mas4trt/microservices/order/internal/model"
 )
 
 func (s *service) Cancel(ctx context.Context, orderUUID uuid.UUID) error {

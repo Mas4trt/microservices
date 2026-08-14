@@ -3,9 +3,10 @@ package order
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/Mas4trt/microservices/order/internal/model"
 	repoConverter "github.com/Mas4trt/microservices/order/internal/repository/converter"
-	"github.com/google/uuid"
 )
 
 func (r *repository) Create(_ context.Context, order model.OrderDto) (uuid.UUID, error) {

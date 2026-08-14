@@ -3,8 +3,9 @@ package service
 import (
 	"context"
 
-	"github.com/Mas4trt/microservices/order/internal/model"
 	"github.com/google/uuid"
+
+	"github.com/Mas4trt/microservices/order/internal/model"
 )
 
 type OrderService interface {
