@@ -2,10 +2,13 @@ package v1
 
 import (
 	"context"
+	"fmt"
 
 	clientConverter "github.com/Mas4trt/microservices/order/internal/client/converter"
 	"github.com/Mas4trt/microservices/order/internal/model"
 	generatedInventoryV1 "github.com/Mas4trt/microservices/shared/pkg/proto/inventory/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c *client) ListParts(ctx context.Context, filter model.PartsFilter) ([]model.Part, error) {
@@ -13,8 +16,23 @@ func (c *client) ListParts(ctx context.Context, filter model.PartsFilter) ([]mod
 		Filter: clientConverter.PartsFilterToProto(filter),
 	})
 	if err != nil {
-		return nil, err
+		return nil, mapInventoryErr(err)
+	}
+	return clientConverter.PartListToModel(parts.Parts), nil
+}
+
+func mapInventoryErr(err error) error {
+	st, ok := status.FromError(err)
+	if !ok {
+		return fmt.Errorf("%w: %v", model.ErrInventoryUnavailable, err)
 	}
 
-	return clientConverter.PartListToModel(parts.Parts), nil
+	switch st.Code() {
+	case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted, codes.Canceled:
+		return fmt.Errorf("%w: %v", model.ErrInventoryUnavailable, err)
+	case codes.InvalidArgument:
+		return fmt.Errorf("%w: %v", model.ErrInventoryInvalidArgument, err)
+	default:
+		return fmt.Errorf("%w: %v", model.ErrInventoryInternal, err)
+	}
 }
