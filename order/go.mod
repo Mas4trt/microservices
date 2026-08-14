@@ -7,7 +7,6 @@ require (
 	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/google/uuid v1.6.0
-	github.com/ogen-go/ogen v1.24.0
 	google.golang.org/grpc v1.83.0
 	google.golang.org/protobuf v1.36.12
 )
@@ -24,6 +23,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
+	github.com/ogen-go/ogen v1.24.0 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
