@@ -30,10 +30,7 @@ func (s *service) Pay(ctx context.Context, orderUUID uuid.UUID, method model.Pay
 
 	resp, err := s.paymentClient.PayOrder(ctx, order.UserUUID.String(), order.OrderUUID.String(), method)
 	if err != nil {
-		if errors.Is(err, model.ErrInvalidPaymentMethod) {
-			return uuid.Nil, err
-		}
-		return uuid.Nil, model.ErrPaymentUnavailable
+		return uuid.Nil, err
 	}
 
 	transactionUUID, err := uuid.Parse(resp)

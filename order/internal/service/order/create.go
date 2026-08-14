@@ -30,7 +30,7 @@ func (s *service) Create(ctx context.Context, userUUID uuid.UUID, partUUIDs []uu
 		UUIDs: uuids,
 	})
 	if err != nil {
-		return uuid.Nil, 0, fmt.Errorf("%w: %v", model.ErrInventoryUnavailable, err)
+		return uuid.Nil, 0, err
 	}
 
 	priceByUUID := make(map[uuid.UUID]float64, len(resp))
