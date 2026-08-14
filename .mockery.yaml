@@ -1,0 +1,13 @@
+with-expecter: true
+dir: "{{.InterfaceDir}}/mocks"
+filename: "mock_{{.InterfaceNameSnake}}.go"
+outpkg: "mocks"
+mockname: "{{.InterfaceName}}"
+resolve-type-alias: False
+issue-845-fix: True
+disable-version-string: true
+
+packages:
+  github.com/Mas4trt/microservices/inventory/internal/repository:
+    config:
+      all: true
