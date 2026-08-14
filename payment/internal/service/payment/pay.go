@@ -4,8 +4,9 @@ import (
 	"context"
 	"log"
 
-	"github.com/Mas4trt/microservices/payment/internal/model"
 	"github.com/google/uuid"
+
+	"github.com/Mas4trt/microservices/payment/internal/model"
 )
 
 func (s *service) PayOrder(_ context.Context, req model.PayOrderRequest) (string, error) {

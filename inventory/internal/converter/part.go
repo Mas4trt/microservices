@@ -3,10 +3,11 @@ package converter
 import (
 	"time"
 
-	"github.com/Mas4trt/microservices/inventory/internal/model"
-	inventoryV1 "github.com/Mas4trt/microservices/shared/pkg/proto/inventory/v1"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/Mas4trt/microservices/inventory/internal/model"
+	inventoryV1 "github.com/Mas4trt/microservices/shared/pkg/proto/inventory/v1"
 )
 
 func PartsFilterToModel(filter *inventoryV1.PartsFilter) model.PartsFilter {
