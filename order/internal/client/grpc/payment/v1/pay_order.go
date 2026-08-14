@@ -2,9 +2,12 @@ package v1
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Mas4trt/microservices/order/internal/model"
 	generatedPaymentV1 "github.com/Mas4trt/microservices/shared/pkg/proto/payment/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (c *client) PayOrder(ctx context.Context, userUuid string, orderUuid string, paymentMethod model.PaymentMethod) (string, error) {
@@ -19,10 +22,26 @@ func (c *client) PayOrder(ctx context.Context, userUuid string, orderUuid string
 		PaymentMethod: protoMethod,
 	})
 	if err != nil {
-		return "", err
+		return "", mapPaymentErr(err)
 	}
 
 	return res.TransactionUuid, nil
+}
+
+func mapPaymentErr(err error) error {
+	st, ok := status.FromError(err)
+	if !ok {
+		return fmt.Errorf("%w: %v", model.ErrPaymentUnavailable, err)
+	}
+
+	switch st.Code() {
+	case codes.Unavailable, codes.DeadlineExceeded, codes.ResourceExhausted, codes.Canceled:
+		return fmt.Errorf("%w: %v", model.ErrPaymentUnavailable, err)
+	case codes.InvalidArgument:
+		return fmt.Errorf("%w: %v", model.ErrInvalidPaymentMethod, err)
+	default:
+		return fmt.Errorf("%w: %v", model.ErrPaymentInternal, err)
+	}
 }
 
 func PaymentMethodToProto(method model.PaymentMethod) (generatedPaymentV1.PaymentMethod, error) {
