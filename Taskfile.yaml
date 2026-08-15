@@ -130,7 +130,8 @@ tasks:
         for mod in {{.MODULES}}; do
           if [ -d "$mod" ]; then
             echo "🔍 Линтим $mod module"
-            {{.GOLANGCI_LINT}} run $mod/... --config=.golangci.yaml || ERR=1
+            # Переходим в директорию модуля и запускаем линтер
+            (cd "$mod" && {{.GOLANGCI_LINT}} run ./... --config=../.golangci.yaml) || ERR=1
           fi
         done
         exit $ERR
