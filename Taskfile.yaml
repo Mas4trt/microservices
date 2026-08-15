@@ -309,11 +309,22 @@ tasks:
             echo "⚠️  Нет подходящих пакетов в $mod"
             continue
           fi
+
+          echo "🎯 Пакеты:"
+          echo "$TARGET_PKGS" | tr ',' '\n'
+
+          echo "🧪 Запускаем тесты..."
+
+          cd "$mod"
         
           go test -coverpkg="$TARGET_PKGS" \
             -coverprofile={{.COVERAGE_DIR}}/$mod.out \
             -covermode=atomic \
             $(echo "$TARGET_PKGS" | tr "," " ") || ERR=1
+
+          cd ..
+
+          echo "✅ Тесты завершены: $mod"
         done
         
         if [ $ERR -ne 0 ]; then
