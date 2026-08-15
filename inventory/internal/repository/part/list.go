@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Mas4trt/microservices/inventory/internal/model"
-	"github.com/Mas4trt/microservices/inventory/internal/repository/converter"
 	repoConverter "github.com/Mas4trt/microservices/inventory/internal/repository/converter"
 	repoModel "github.com/Mas4trt/microservices/inventory/internal/repository/model"
 )
@@ -43,7 +42,7 @@ func (r *repository) List(_ context.Context, filter model.PartsFilter) ([]model.
 		result = append(result, part)
 	}
 
-	return converter.PartsToModel(result), nil
+	return repoConverter.PartsToModel(result), nil
 }
 
 func stringValueSet(values []string) map[string]struct{} {

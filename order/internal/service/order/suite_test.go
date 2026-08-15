@@ -4,14 +4,16 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
+
 	clientMocks "github.com/Mas4trt/microservices/order/internal/client/grpc/mocks"
 	repoMocks "github.com/Mas4trt/microservices/order/internal/repository/mocks"
-	"github.com/stretchr/testify/suite"
 )
 
 type ServiceSuite struct {
 	suite.Suite
 
+	//nolint:containedctx // context is intentionally stored for test suite lifecycle
 	ctx context.Context
 
 	orderRepository *repoMocks.OrderRepository

@@ -1,8 +1,9 @@
 package part
 
 import (
-	"github.com/Mas4trt/microservices/inventory/internal/model"
 	"github.com/brianvoe/gofakeit/v7"
+
+	"github.com/Mas4trt/microservices/inventory/internal/model"
 )
 
 func newTestParts(count int) []model.Part {

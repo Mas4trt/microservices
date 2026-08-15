@@ -10,6 +10,7 @@ import (
 type ServiceSuite struct {
 	suite.Suite
 
+	//nolint:containedctx // context is intentionally stored for test suite lifecycle
 	ctx context.Context
 	svc *service
 }
