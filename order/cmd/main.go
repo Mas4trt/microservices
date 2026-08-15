@@ -38,9 +38,13 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error: %v", err)
 	}
-	defer inventoryConn.Close()
+	defer func() {
+		if err := inventoryConn.Close(); err != nil {
+			log.Printf("failed to close inventory connection: %v", err)
+		}
+	}()
 
 	inventoryGRPCClient := inventoryV1.NewInventoryServiceClient(inventoryConn)
 	invClient := inventoryClient.NewClient(inventoryGRPCClient)
@@ -50,9 +54,13 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error: %v", err)
 	}
-	defer paymentConn.Close()
+	defer func() {
+		if err := paymentConn.Close(); err != nil {
+			log.Printf("failed to close payment connection: %v", err)
+		}
+	}()
 
 	paymentGRPCClient := paymentV1.NewPaymentServiceClient(paymentConn)
 	payClient := paymentClient.NewClient(paymentGRPCClient)
@@ -63,7 +71,8 @@ func main() {
 
 	orderServer, err := orderV1.NewServer(orderHandler)
 	if err != nil {
-		log.Fatalf("ошибка создания сервера OpenAPI: %v", err)
+		// fmt.Printf("ошибка создания сервера OpenAPI")
+		log.Printf("ошибка создания сервера OpenAPI")
 	}
 
 	r := chi.NewRouter()
