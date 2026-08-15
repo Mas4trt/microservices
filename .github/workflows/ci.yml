@@ -32,22 +32,23 @@ jobs:
       golangci-lint-version: ${{ needs.extract-vars.outputs.golangci-lint-version }}
 
   test:
+    needs:
+      - extract-vars
+      - lint
     uses: ./.github/workflows/test-reusable.yml
-    needs: lint
     with:
       modules: ${{ needs.extract-vars.outputs.modules }}
       go-version: ${{ needs.extract-vars.outputs.go-version }}
 
   coverage:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - extract-vars
+      - test
     uses: ./.github/workflows/test-coverage-reusable.yml
-    needs: test
     with:
       modules: ${{ needs.extract-vars.outputs.modules }}
       go-version: ${{ needs.extract-vars.outputs.go-version }}
       gist-id: "c35fe7088a911247b1a8eea2fedcd110"
     secrets:
       GIST_SECRET: ${{ secrets.GIST_SECRET }}
-
-
-      
