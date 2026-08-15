@@ -40,32 +40,47 @@ jobs:
       - name: 🧪 Run tests with coverage
         env:
           MODULES: ${{ inputs.modules }}
-        run: task test-coverage
+        run: |
+          task test-coverage
 
       - name: 📊 Extract coverage percent
+        id: coverage
+        shell: bash
         run: |
-          # Выводим последнюю строку с total и заменяем табы на пробелы
-          COVERAGE_OUTPUT=$(go tool cover -func=${COVERAGE_DIR}/${COVERAGE_FILE} | tail -1)
-          echo "Raw coverage output: $COVERAGE_OUTPUT"
+          COVERAGE_FILE_PATH="${COVERAGE_DIR}/${COVERAGE_FILE}"
 
-          # Преобразуем вывод, заменяем табы на пробелы и лишние пробелы схлопываем
-          CLEAN_OUTPUT=$(echo "$COVERAGE_OUTPUT" | tr -s '\t ' ' ')
-          echo "Cleaned output: $CLEAN_OUTPUT"
+          echo "Coverage file: ${COVERAGE_FILE_PATH}"
 
-          # Извлекаем последний элемент строки - это будет процент
-          TOTAL=$(echo "$CLEAN_OUTPUT" | awk '{print $NF}')
-          echo "💯 Total coverage: $TOTAL"
+          if [[ ! -f "$COVERAGE_FILE_PATH" ]]; then
+            echo "❌ Coverage file not found: $COVERAGE_FILE_PATH"
+            exit 1
+          fi
 
-          # Сохраняем в переменные окружения
-          echo "TOTAL_COVERAGE=$TOTAL" >> $GITHUB_ENV
-          echo "GIST_ID=${{ inputs.gist-id }}" >> $GITHUB_ENV
+          echo "📄 Coverage file:"
+          cat "$COVERAGE_FILE_PATH"
+
+          COVERAGE_OUTPUT=$(go tool cover -func="$COVERAGE_FILE_PATH")
+
+          echo "📊 go tool cover output:"
+          echo "$COVERAGE_OUTPUT"
+
+          TOTAL_COVERAGE=$(echo "$COVERAGE_OUTPUT" | awk '/^total:/ {print $NF}')
+
+          if [[ -z "$TOTAL_COVERAGE" ]]; then
+            echo "❌ Failed to extract total coverage"
+            exit 1
+          fi
+
+          echo "💯 Total coverage: $TOTAL_COVERAGE"
+
+          echo "total=$TOTAL_COVERAGE" >> "$GITHUB_OUTPUT"
 
       - name: 🏷️ Update Gist Badge
         uses: schneegans/dynamic-badges-action@v1.7.0
         with:
           auth: ${{ secrets.GIST_SECRET }}
-          gistID: ${{ env.GIST_ID }}
+          gistID: ${{ inputs.gist-id }}
           filename: coverage.json
           label: Coverage
-          message: ${{ env.TOTAL_COVERAGE }}
+          message: ${{ steps.coverage.outputs.total }}
           color: green
