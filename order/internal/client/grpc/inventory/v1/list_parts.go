@@ -12,14 +12,20 @@ import (
 	inventoryV1 "github.com/Mas4trt/microservices/shared/pkg/proto/inventory/v1"
 )
 
-func (c *client) ListParts(ctx context.Context, filter model.PartsFilter) ([]model.Part, error) {
+func (c *client) ListParts(ctx context.Context, filter model.PartsFilter) ([]model.PricedPart, error) {
 	parts, err := c.generatedClient.ListParts(ctx, &inventoryV1.ListPartsRequest{
 		Filter: clientConverter.PartsFilterToProto(filter),
 	})
 	if err != nil {
 		return nil, mapInventoryErr(err)
 	}
-	return clientConverter.PartListToModel(parts.Parts), nil
+
+	res, err := clientConverter.PartListToModel(parts.Parts)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", model.ErrInventoryInternal, err)
+	}
+
+	return res, nil
 }
 
 func mapInventoryErr(err error) error {

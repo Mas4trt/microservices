@@ -7,7 +7,7 @@ import (
 )
 
 type InventoryClient interface {
-	ListParts(ctx context.Context, filter model.PartsFilter) ([]model.Part, error)
+	ListParts(ctx context.Context, filter model.PartsFilter) ([]model.PricedPart, error)
 }
 
 type PaymentClient interface {
