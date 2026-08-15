@@ -14,7 +14,7 @@ import (
 )
 
 func (a *api) GetPart(ctx context.Context, req *inventoryV1.GetPartRequest) (*inventoryV1.GetPartResponse, error) {
-	part, err := a.inventoryService.Get(ctx, req.Uuid)
+	part, err := a.inventoryService.Get(ctx, req.GetUuid())
 	if err != nil {
 		if errors.Is(err, model.ErrPartNotFound) {
 			return nil, status.Errorf(
