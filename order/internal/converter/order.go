@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"log"
+
 	"github.com/Mas4trt/microservices/order/internal/model"
 	orderV1 "github.com/Mas4trt/microservices/shared/pkg/openapi/order/v1"
 )
@@ -38,6 +40,7 @@ func OrderStatusToProto(status model.OrderStatus) orderV1.OrderStatus {
 	case model.OrderStatusCANCELLED:
 		return orderV1.OrderStatusCANCELLED
 	default:
+		log.Printf("OrderStatusToProto: unexpected order status %q, defaulting to PENDING_PAYMENT", status)
 		return orderV1.OrderStatusPENDINGPAYMENT
 	}
 }
@@ -53,6 +56,7 @@ func PaymentMethodToProtoDto(method model.PaymentMethod) orderV1.PaymentMethod {
 	case model.PaymentMethodINVESTORMONEY:
 		return orderV1.PaymentMethodINVESTORMONEY
 	default:
+		log.Printf("PaymentMethodToProtoDto: unexpected payment method %q, defaulting to UNKNOWN", method)
 		return orderV1.PaymentMethodUNKNOWN
 	}
 }
