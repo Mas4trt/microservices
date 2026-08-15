@@ -58,7 +58,7 @@ func (s *service) Create(ctx context.Context, userUUID uuid.UUID, partUUIDs []uu
 
 	orderUUID, err := s.orderRepository.Create(ctx, *newOrder)
 	if err != nil {
-		return uuid.Nil, 0, fmt.Errorf("%w: %v", model.ErrOrderCreateFailed, err)
+		return uuid.Nil, 0, fmt.Errorf("%w: %w", model.ErrOrderCreateFailed, err)
 	}
 
 	return orderUUID, totalPrice, nil
