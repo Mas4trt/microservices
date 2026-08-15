@@ -117,7 +117,7 @@ func main() {
 
 	ctx := context.Background()
 	if err := repo.Init(ctx, seedParts()); err != nil {
-		log.Fatal(err)
+		log.Printf("Fatal error: %v", err)
 	}
 
 	inventoryV1.RegisterInventoryServiceServer(s, api)
