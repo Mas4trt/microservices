@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	"errors"
+	"log"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -23,7 +24,8 @@ func (a *api) GetPart(ctx context.Context, req *inventoryV1.GetPartRequest) (*in
 			)
 		}
 
-		return nil, err
+		log.Printf("GetPart: internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &inventoryV1.GetPartResponse{
