@@ -338,7 +338,7 @@ tasks:
           OUTFILE="{{.COVERAGE_DIR}}/$mod.out"
           if [ -f "$OUTFILE" ]; then
             printf " • %s: " "$mod"
-            go tool cover -func="$OUTFILE" | tail -n1
+            (cd "$mod" && go tool cover -func=../{{.COVERAGE_DIR}}/$mod.out | tail -n1)
           fi
         done
         
