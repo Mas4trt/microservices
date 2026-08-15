@@ -300,7 +300,7 @@ tasks:
         for mod in {{.MODULES}}; do
           echo "📦 Обрабатываем модуль: $mod"
         
-          TARGET_PKGS=$(cd "$mod" && go list ./... \
+          TARGET_PKGS=$(go list ./$mod/... \
             | grep -E '/(internal/(service|repository))' \
             | grep -vE '/(mocks|testdata|pkg|api|proto|pb|cmd)' \
             | paste -sd "," -)
@@ -309,22 +309,11 @@ tasks:
             echo "⚠️  Нет подходящих пакетов в $mod"
             continue
           fi
-
-          echo "🎯 Пакеты:"
-          echo "$TARGET_PKGS" | tr ',' '\n'
-
-          echo "🧪 Запускаем тесты..."
-
-          cd "$mod"
         
           go test -coverpkg="$TARGET_PKGS" \
             -coverprofile={{.COVERAGE_DIR}}/$mod.out \
             -covermode=atomic \
             $(echo "$TARGET_PKGS" | tr "," " ") || ERR=1
-
-          cd ..
-
-          echo "✅ Тесты завершены: $mod"
         done
         
         if [ $ERR -ne 0 ]; then
@@ -338,28 +327,22 @@ tasks:
           OUTFILE="{{.COVERAGE_DIR}}/$mod.out"
           if [ -f "$OUTFILE" ]; then
             printf " • %s: " "$mod"
-            (cd "$mod" && go tool cover -func=../{{.COVERAGE_DIR}}/$mod.out | tail -n1)
+            go tool cover -func="$OUTFILE" | tail -n1
           fi
         done
         
         echo
         echo "📦 Склеиваем все покрытия..."
-
         {
           echo "mode: atomic"
-
-          for mod in {{.MODULES}}; do
-            OUTFILE="{{.COVERAGE_DIR}}/$mod.out"
-
-            if [ -f "$OUTFILE" ]; then
-              grep -v "^mode:" "$OUTFILE"
-            fi
-          done
-        } > "{{.COVERAGE_DIR}}/{{.COVERAGE_FILE}}"
+          find {{.COVERAGE_DIR}} -type f -name '*.out' ! -name '{{.COVERAGE_FILE}}' \
+            -exec grep -h -v "^mode:" {} +
+        } > {{.COVERAGE_DIR}}/{{.COVERAGE_FILE}}
         
         echo
         echo "🧾 Общее покрытие по всем модулям:"
         go tool cover -func={{.COVERAGE_DIR}}/{{.COVERAGE_FILE}} | tail -n1
+
 
   coverage:html:
     desc: "Генерирует HTML-отчёт покрытия и открывает его в браузере"
@@ -390,7 +373,7 @@ tasks:
         for mod in {{.MODULES}}; do
           if [ -d "$mod" ]; then
             echo "🧪 Тестируем модуль $mod"
-            (cd "$mod" && go test -v ./...) || ERR=1
+            go test -v ./$mod/... || ERR=1
           fi
         done
         exit $ERR
