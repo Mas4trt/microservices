@@ -13,12 +13,16 @@ import (
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	orderHandler "github.com/Mas4trt/microservices/order/internal/api/order/v1"
 	inventoryClient "github.com/Mas4trt/microservices/order/internal/client/grpc/inventory/v1"
 	paymentClient "github.com/Mas4trt/microservices/order/internal/client/grpc/payment/v1"
+	"github.com/Mas4trt/microservices/order/internal/migrator"
 	orderRepository "github.com/Mas4trt/microservices/order/internal/repository/order"
 	orderService "github.com/Mas4trt/microservices/order/internal/service/order"
 	orderV1 "github.com/Mas4trt/microservices/shared/pkg/openapi/order/v1"
@@ -33,6 +37,47 @@ const (
 )
 
 func main() {
+	if err := godotenv.Load(".env"); err != nil {
+		log.Printf("failed to load .env file: %v\n", err)
+	}
+
+	dbURI := os.Getenv("DB_URI")
+	migrationsDir := os.Getenv("MIGRATIONS_DIR")
+
+	pgxCfg, err := pgxpool.ParseConfig(dbURI)
+	if err != nil {
+		log.Printf("failed to parse DB_URI: %v\n", err)
+		return
+	}
+
+	ctx := context.Background()
+
+	pool, err := pgxpool.NewWithConfig(ctx, pgxCfg)
+	if err != nil {
+		log.Printf("failed to connect to database: %v\n", err)
+		return
+	}
+	defer pool.Close()
+
+	if err := pool.Ping(ctx); err != nil {
+		log.Fatalf("failed to ping postgres: %v", err)
+	}
+	log.Println("✅ Connected to Postgres")
+
+	migrationDB := stdlib.OpenDB(*pgxCfg.ConnConfig.Copy())
+	defer func() {
+		if err := migrationDB.Close(); err != nil {
+			log.Printf("failed to close migration db connection: %v\n", err)
+		}
+	}()
+
+	migratorRunner := migrator.NewMigrator(migrationDB, migrationsDir)
+	if err := migratorRunner.Up(); err != nil {
+		log.Printf("Ошибка миграции базы данных: %v\n", err)
+		return
+	}
+	log.Println("✅ Migrations applied")
+
 	inventoryConn, err := grpc.NewClient(
 		"localhost:50050",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -65,7 +110,7 @@ func main() {
 	paymentGRPCClient := paymentV1.NewPaymentServiceClient(paymentConn)
 	payClient := paymentClient.NewClient(paymentGRPCClient)
 
-	repo := orderRepository.NewRepository()
+	repo := orderRepository.NewRepository(pool)
 	orderSvc := orderService.NewService(repo, invClient, payClient)
 	orderHandler := orderHandler.NewOrderHandler(orderSvc)
 
