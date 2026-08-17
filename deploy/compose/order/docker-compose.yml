@@ -14,7 +14,7 @@ services:
       POSTGRES_PASSWORD: order-service-password # Пароль для указанного пользователя
     
     volumes:
-      - postgres_order_data:/var/lib/postgresql/data
+      - postgres_order_data:/var/lib/postgresql
     # Определяем том, который будет использоваться для хранения данных PostgreSQL
     # Он сохраняет данные между перезапусками контейнера
 
