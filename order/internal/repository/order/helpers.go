@@ -2,7 +2,9 @@ package order
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
 
 	"github.com/jackc/pgx/v5"
 
@@ -10,7 +12,7 @@ import (
 )
 
 // insertOrderParts вставляет строки order_parts батчем в рамках переданной транзакции.
-func insertOrderParts(ctx context.Context, tx pgx.Tx, parts []repoModel.OrderPart) error {
+func insertOrderParts(ctx context.Context, tx pgx.Tx, parts []repoModel.OrderPart) (err error) {
 	if len(parts) == 0 {
 		return nil
 	}
@@ -24,7 +26,11 @@ func insertOrderParts(ctx context.Context, tx pgx.Tx, parts []repoModel.OrderPar
 	}
 
 	br := tx.SendBatch(ctx, batch)
-	defer br.Close()
+	defer func() {
+		if closeErr := br.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("close batch results: %w", closeErr)
+		}
+	}()
 
 	for range parts {
 		if _, err := br.Exec(); err != nil {
@@ -33,4 +39,10 @@ func insertOrderParts(ctx context.Context, tx pgx.Tx, parts []repoModel.OrderPar
 	}
 
 	return nil
+}
+
+func rollbackTx(ctx context.Context, tx pgx.Tx) {
+	if err := tx.Rollback(ctx); err != nil && !errors.Is(err, pgx.ErrTxClosed) {
+		log.Printf("failed to rollback transaction: %v", err)
+	}
 }
