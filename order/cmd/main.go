@@ -60,7 +60,8 @@ func main() {
 	defer pool.Close()
 
 	if err := pool.Ping(ctx); err != nil {
-		log.Fatalf("failed to ping postgres: %v", err)
+		log.Printf("failed to ping postgres: %v", err)
+		return
 	}
 	log.Println("✅ Connected to Postgres")
 
@@ -83,7 +84,8 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Printf("failed to create inventory gRPC client: %v", err)
+		return
 	}
 	defer func() {
 		if err := inventoryConn.Close(); err != nil {
@@ -99,7 +101,8 @@ func main() {
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.Printf("Error: %v", err)
+		log.Printf("failed to create payment gRPC client: %v", err)
+		return
 	}
 	defer func() {
 		if err := paymentConn.Close(); err != nil {
@@ -116,8 +119,8 @@ func main() {
 
 	orderServer, err := orderV1.NewServer(orderHandler)
 	if err != nil {
-		// fmt.Printf("ошибка создания сервера OpenAPI")
-		log.Printf("ошибка создания сервера OpenAPI")
+		log.Printf("ошибка создания сервера OpenAPI: %v", err)
+		return
 	}
 
 	r := chi.NewRouter()
@@ -136,7 +139,7 @@ func main() {
 
 	go func() {
 		log.Printf("🚀 HTTP-сервер запущен на порту %s\n", httpPort)
-		err = server.ListenAndServe()
+		err := server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("❌ Ошибка запуска сервера: %v\n", err)
 		}
