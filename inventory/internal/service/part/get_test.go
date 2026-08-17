@@ -1,8 +1,6 @@
 package part
 
 import (
-	"context"
-
 	"github.com/brianvoe/gofakeit/v7"
 
 	"github.com/Mas4trt/microservices/inventory/internal/model"
@@ -11,14 +9,13 @@ import (
 func (s *ServiceSuite) TestGetSuccess() {
 	partUUID := gofakeit.UUID()
 	expected := newTestPart()
-	ctx := context.Background()
 
 	s.inventoryRepository.
-		On("Get", ctx, partUUID).
+		On("Get", s.ctx, partUUID).
 		Return(expected, nil).
 		Once()
 
-	actual, err := s.srv.Get(ctx, partUUID)
+	actual, err := s.srv.Get(s.ctx, partUUID)
 
 	s.Require().NoError(err)
 	s.Require().Equal(expected, actual)
@@ -29,14 +26,13 @@ func (s *ServiceSuite) TestGetSuccess() {
 func (s *ServiceSuite) TestGetRepoError() {
 	partUUID := gofakeit.UUID()
 	repoErr := gofakeit.Error()
-	ctx := context.Background()
 
 	s.inventoryRepository.
-		On("Get", ctx, partUUID).
+		On("Get", s.ctx, partUUID).
 		Return(model.Part{}, repoErr).
 		Once()
 
-	actual, err := s.srv.Get(ctx, partUUID)
+	actual, err := s.srv.Get(s.ctx, partUUID)
 
 	s.Require().ErrorIs(err, repoErr)
 	s.Require().Empty(actual)
