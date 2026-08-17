@@ -24,9 +24,7 @@ func (r *repository) Create(ctx context.Context, order model.OrderDto) (uuid.UUI
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer func() {
-		_ = tx.Rollback(ctx)
-	}()
+	defer rollbackTx(ctx, tx)
 
 	_, err = tx.Exec(ctx, `
 		INSERT INTO orders (order_uuid, user_uuid, total_price, transaction_uuid, payment_method, status)

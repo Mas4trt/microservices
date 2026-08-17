@@ -18,9 +18,7 @@ func (r *repository) Update(ctx context.Context, orderUUID uuid.UUID, newOrder m
 	if err != nil {
 		return fmt.Errorf("begin tx: %w", err)
 	}
-	defer func() {
-		_ = tx.Rollback(ctx)
-	}()
+	defer rollbackTx(ctx, tx)
 
 	tag, err := tx.Exec(ctx, `
 		UPDATE orders
