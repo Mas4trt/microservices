@@ -9,7 +9,7 @@ import (
 	repoModel "github.com/Mas4trt/microservices/inventory/internal/repository/model"
 )
 
-func (r *repository) List(ctx context.Context, filter model.PartsFilter) ([]model.Part, error) {
+func (r *repository) List(ctx context.Context, filter model.PartsFilter) (res []model.Part, err error) {
 	query := repoConverter.FilterToBSON(filter)
 
 	cursor, err := r.coll.Find(ctx, query)
