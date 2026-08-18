@@ -2,106 +2,34 @@ package part
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Mas4trt/microservices/inventory/internal/model"
 	repoConverter "github.com/Mas4trt/microservices/inventory/internal/repository/converter"
 	repoModel "github.com/Mas4trt/microservices/inventory/internal/repository/model"
 )
 
-func (r *repository) List(_ context.Context, filter model.PartsFilter) ([]model.Part, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+func (r *repository) List(ctx context.Context, filter model.PartsFilter) ([]model.Part, error) {
+	query := repoConverter.FilterToBSON(filter)
 
-	convFilter := repoConverter.FilterToRepoModel(filter)
-
-	uuids := stringValueSet(convFilter.UUIDs)
-	names := stringValueSet(convFilter.Names)
-	countries := stringValueSet(convFilter.ManufacturerCountries)
-	tags := stringValueSet(convFilter.Tags)
-	categories := categorySet(convFilter.Categories)
-
-	result := make([]repoModel.Part, 0, len(r.parts))
-
-	for _, part := range r.parts {
-		if !matchesSet(uuids, part.Uuid) {
-			continue
+	cursor, err := r.coll.Find(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find parts: %w", err)
+	}
+	defer func() {
+		if closeErr := cursor.Close(ctx); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close cursor: %w", closeErr)
 		}
-		if !matchesSet(names, part.Name) {
-			continue
-		}
-		if !matchesCategorySet(categories, part.Category) {
-			continue
-		}
-		if !matchesSet(countries, part.Manufacturer.Country) {
-			continue
-		}
-		if !matchesAnySet(tags, part.Tags) {
-			continue
-		}
+	}()
 
-		result = append(result, part)
+	var repoParts []repoModel.Part
+	if err := cursor.All(ctx, &repoParts); err != nil {
+		return nil, fmt.Errorf("failed to decode parts: %w", err)
 	}
 
-	return repoConverter.PartsToModel(result), nil
-}
-
-func stringValueSet(values []string) map[string]struct{} {
-	if len(values) == 0 {
-		return nil
+	if len(repoParts) == 0 {
+		return []model.Part{}, nil
 	}
 
-	set := make(map[string]struct{}, len(values))
-
-	for _, v := range values {
-		set[v] = struct{}{}
-	}
-
-	return set
-}
-
-func categorySet(values []repoModel.Category) map[repoModel.Category]struct{} {
-	if len(values) == 0 {
-		return nil
-	}
-
-	set := make(map[repoModel.Category]struct{}, len(values))
-	for _, v := range values {
-		set[v] = struct{}{}
-	}
-
-	return set
-}
-
-// matchesSet: nil/пустое множество означает "фильтр не задан" -> всегда true.
-func matchesSet(set map[string]struct{}, value string) bool {
-	if set == nil {
-		return true
-	}
-
-	_, ok := set[value]
-	return ok
-}
-
-func matchesCategorySet(set map[repoModel.Category]struct{}, value repoModel.Category) bool {
-	if set == nil {
-		return true
-	}
-
-	_, ok := set[value]
-	return ok
-}
-
-// matchesAnySet: ИЛИ внутри поля — хотя бы один тег детали входит в фильтр.
-func matchesAnySet(set map[string]struct{}, values []string) bool {
-	if set == nil {
-		return true
-	}
-
-	for _, v := range values {
-		if _, ok := set[v]; ok {
-			return true
-		}
-	}
-
-	return false
+	return repoConverter.PartsToModel(repoParts), nil
 }

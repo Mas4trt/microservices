@@ -10,6 +10,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
@@ -27,7 +30,7 @@ func seedParts() map[string]model.Part {
 
 	return map[string]model.Part{
 		"550e8400-e29b-41d4-a716-446655440000": {
-			Uuid:          "550e8400-e29b-41d4-a716-446655440000",
+			UUID:          "550e8400-e29b-41d4-a716-446655440000",
 			Name:          "Main Booster Engine",
 			Description:   "Основной маршевый двигатель первой ступени",
 			Price:         1_250_000.0,
@@ -62,7 +65,7 @@ func seedParts() map[string]model.Part {
 		},
 
 		"f47ac10b-58cc-4372-a567-0e02b2c3d479": {
-			Uuid:          "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+			UUID:          "f47ac10b-58cc-4372-a567-0e02b2c3d479",
 			Name:          "Cryo Fuel Tank",
 			Description:   "Криогенный топливный бак",
 			Price:         340_000.0,
@@ -98,6 +101,36 @@ func seedParts() map[string]model.Part {
 }
 
 func main() {
+	ctx := context.Background()
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		log.Printf("failed to load .env file: %v\n", err)
+		return
+	}
+
+	dbURI := os.Getenv("MONGO_URI")
+
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbURI))
+	if err != nil {
+		log.Printf("failed to connect to database: %v\n", err)
+		return
+	}
+	defer func() {
+		cerr := client.Disconnect(ctx)
+		if cerr != nil {
+			log.Printf("failed to disconnect: %v\n", cerr)
+		}
+	}()
+
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Printf("failed to ping database: %v\n", err)
+		return
+	}
+
+	db := client.Database("inventory-service")
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
 	if err != nil {
 		log.Printf("failed to listen: %v\n", err)
@@ -111,11 +144,10 @@ func main() {
 
 	s := grpc.NewServer()
 
-	repo := inventoryRepository.NewRepository()
+	repo := inventoryRepository.NewRepository(db)
 	service := inventoryService.NewService(repo)
 	api := inventoryAPI.NewAPI(service)
 
-	ctx := context.Background()
 	if err := repo.Init(ctx, seedParts()); err != nil {
 		log.Printf("Fatal error: %v", err)
 	}
