@@ -5,26 +5,26 @@ import "time"
 type Category int32
 
 const (
-	CategoryUnspecified Category = 0
-	CategoryEngine      Category = 1
-	CategoryFuel        Category = 2
-	CategoryPorthole    Category = 3
-	CategoryWing        Category = 4
+	CategoryUnspecified Category = iota
+	CategoryEngine
+	CategoryFuel
+	CategoryPorthole
+	CategoryWing
 )
 
-var categoryName = map[Category]string{
-	CategoryUnspecified: "CATEGORY_UNSPECIFIED",
-	CategoryEngine:      "CATEGORY_ENGINE",
-	CategoryFuel:        "CATEGORY_FUEL",
-	CategoryPorthole:    "CATEGORY_PORTHOLE",
-	CategoryWing:        "CATEGORY_WING",
-}
-
 func (c Category) String() string {
-	if name, ok := categoryName[c]; ok {
-		return name
+	switch c {
+	case CategoryEngine:
+		return "CATEGORY_ENGINE"
+	case CategoryFuel:
+		return "CATEGORY_FUEL"
+	case CategoryPorthole:
+		return "CATEGORY_PORTHOLE"
+	case CategoryWing:
+		return "CATEGORY_WING"
+	default:
+		return "CATEGORY_UNSPECIFIED"
 	}
-	return "CATEGORY_UNSPECIFIED"
 }
 
 type Dimensions struct {
@@ -48,7 +48,7 @@ type Value struct {
 }
 
 type Part struct {
-	Uuid          string
+	UUID          string
 	Name          string
 	Description   string
 	Price         float64

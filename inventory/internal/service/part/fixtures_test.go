@@ -24,7 +24,7 @@ func newTestPart() model.Part {
 		model.CategoryWing,
 	}
 	return model.Part{
-		Uuid:          gofakeit.UUID(),
+		UUID:          gofakeit.UUID(),
 		Name:          gofakeit.Name(),
 		Description:   gofakeit.Sentence(10),
 		Price:         gofakeit.Price(100, 100000),

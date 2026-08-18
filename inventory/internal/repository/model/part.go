@@ -2,6 +2,8 @@ package model
 
 import (
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Category int32
@@ -30,44 +32,30 @@ func (c Category) String() string {
 }
 
 type Dimensions struct {
-	Length float64
-	Width  float64
-	Height float64
-	Weight float64
+	Length float64 `bson:"length"`
+	Width  float64 `bson:"width"`
+	Height float64 `bson:"height"`
+	Weight float64 `bson:"weight"`
 }
 
 type Manufacturer struct {
-	Name    string
-	Country string
-	Website string
-}
-
-type Value struct {
-	StringValue *string
-	Int64Value  *int64
-	DoubleValue *float64
-	BoolValue   *bool
+	Name    string `bson:"name"`
+	Country string `bson:"country"`
+	Website string `bson:"website"`
 }
 
 type Part struct {
-	Uuid          string
-	Name          string
-	Description   string
-	Price         float64
-	StockQuantity int64
-	Category      Category
-	Dimensions    Dimensions
-	Manufacturer  Manufacturer
-	Tags          []string
-	Metadata      map[string]any
-	CreatedAt     time.Time
-	UpdatedAt     *time.Time
-}
-
-type PartsFilter struct {
-	UUIDs                 []string
-	Names                 []string
-	Categories            []Category
-	ManufacturerCountries []string
-	Tags                  []string
+	ID            primitive.ObjectID `bson:"_id,omitempty"`
+	UUID          string             `bson:"uuid"`
+	Name          string             `bson:"name"`
+	Description   string             `bson:"description"`
+	Price         float64            `bson:"price"`
+	StockQuantity int64              `bson:"stock_quantity"`
+	Category      string             `bson:"category"`
+	Dimensions    Dimensions         `bson:"dimensions"`
+	Manufacturer  Manufacturer       `bson:"manufacturer"`
+	Tags          []string           `bson:"tags,omitempty"`
+	Metadata      map[string]any     `bson:"metadata,omitempty"`
+	CreatedAt     time.Time          `bson:"created_at"`
+	UpdatedAt     *time.Time         `bson:"updated_at,omitempty"`
 }
