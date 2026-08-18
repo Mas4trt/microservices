@@ -14,13 +14,41 @@ import (
 )
 
 func (r *repository) Get(ctx context.Context, orderUUID uuid.UUID) (model.OrderDto, error) {
-	var repoOrder repoModel.OrderDto
+	var (
+		repoOrder repoModel.OrderDto
+		partUUIDs []uuid.UUID
+	)
+
 	err := r.pool.QueryRow(ctx, `
-		SELECT order_uuid, user_uuid, total_price, transaction_uuid, payment_method, status
-		FROM orders WHERE order_uuid = $1
+		SELECT
+			o.order_uuid,
+			o.user_uuid,
+			o.total_price,
+			o.transaction_uuid,
+			o.payment_method,
+			o.status,
+			COALESCE(
+				array_agg(op.part_uuid) FILTER (WHERE op.part_uuid IS NOT NULL),
+				'{}'
+			)
+		FROM orders o
+		LEFT JOIN order_parts op ON op.order_uuid = o.order_uuid
+		WHERE o.order_uuid = $1
+		GROUP BY
+			o.order_uuid,
+			o.user_uuid,
+			o.total_price,
+			o.transaction_uuid,
+			o.payment_method,
+			o.status
 	`, orderUUID).Scan(
-		&repoOrder.OrderUUID, &repoOrder.UserUUID, &repoOrder.TotalPrice,
-		&repoOrder.TransactionUUID, &repoOrder.PaymentMethod, &repoOrder.Status,
+		&repoOrder.OrderUUID,
+		&repoOrder.UserUUID,
+		&repoOrder.TotalPrice,
+		&repoOrder.TransactionUUID,
+		&repoOrder.PaymentMethod,
+		&repoOrder.Status,
+		&partUUIDs,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -29,25 +57,8 @@ func (r *repository) Get(ctx context.Context, orderUUID uuid.UUID) (model.OrderD
 		return model.OrderDto{}, fmt.Errorf("query order: %w", err)
 	}
 
-	rows, err := r.pool.Query(ctx, `SELECT part_uuid FROM order_parts WHERE order_uuid = $1`, orderUUID)
-	if err != nil {
-		return model.OrderDto{}, fmt.Errorf("query order_parts: %w", err)
-	}
-	defer rows.Close()
-
-	var partUUIDs []uuid.UUID
-	for rows.Next() {
-		var pu uuid.UUID
-		if err := rows.Scan(&pu); err != nil {
-			return model.OrderDto{}, fmt.Errorf("scan part_uuid: %w", err)
-		}
-		partUUIDs = append(partUUIDs, pu)
-	}
-	if err := rows.Err(); err != nil {
-		return model.OrderDto{}, fmt.Errorf("iterate order_parts: %w", err)
-	}
-
 	order := repoConverter.RepoToServiceModel(repoOrder)
 	order.PartUuids = partUUIDs
+
 	return order, nil
 }
