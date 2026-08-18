@@ -54,7 +54,7 @@ func CategoriesToModel(categories []inventoryV1.Category) []model.Category {
 
 func PartToProto(part model.Part) *inventoryV1.Part {
 	return &inventoryV1.Part{
-		Uuid:          part.Uuid,
+		Uuid:          part.UUID,
 		Name:          part.Name,
 		Description:   part.Description,
 		Price:         part.Price,
@@ -102,7 +102,9 @@ func MetadataToProto(metadata map[string]any) map[string]*inventoryV1.Value {
 	result := make(map[string]*inventoryV1.Value, len(metadata))
 
 	for key, value := range metadata {
-		result[key] = AnyToProtoValue(value)
+		if protoVal := AnyToProtoValue(value); protoVal != nil {
+			result[key] = protoVal
+		}
 	}
 
 	return result

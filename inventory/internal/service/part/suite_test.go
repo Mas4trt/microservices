@@ -1,6 +1,7 @@
 package part
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -11,12 +12,17 @@ import (
 type ServiceSuite struct {
 	suite.Suite
 
+	//nolint:containedctx // context is intentionally stored for test suite lifecycle
+	ctx context.Context
+
 	inventoryRepository *mocks.InventoryRepository
 
 	srv *service
 }
 
 func (s *ServiceSuite) SetupTest() {
+	s.ctx = context.Background()
+
 	s.inventoryRepository = mocks.NewInventoryRepository(s.T())
 
 	s.srv = NewService(

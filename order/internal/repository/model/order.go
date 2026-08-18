@@ -21,11 +21,15 @@ const (
 )
 
 type OrderDto struct {
-	OrderUUID       uuid.UUID     `json:"order_uuid"`
-	UserUUID        uuid.UUID     `json:"user_uuid"`
-	PartUuids       []uuid.UUID   `json:"part_uuids"`
-	TotalPrice      float64       `json:"total_price"`
-	TransactionUUID *uuid.UUID    `json:"transaction_uuid"`
-	PaymentMethod   PaymentMethod `json:"payment_method"`
-	Status          OrderStatus   `json:"status"`
+	OrderUUID       uuid.UUID     `db:"order_uuid"`
+	UserUUID        uuid.UUID     `db:"user_uuid"`
+	TotalPrice      float64       `db:"total_price"`
+	TransactionUUID *uuid.UUID    `db:"transaction_uuid"`
+	PaymentMethod   PaymentMethod `db:"payment_method"`
+	Status          OrderStatus   `db:"status"`
+}
+
+type OrderPart struct {
+	OrderUUID uuid.UUID `db:"order_uuid"`
+	PartUUID  uuid.UUID `db:"part_uuid"`
 }

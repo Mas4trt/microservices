@@ -1,21 +1,19 @@
 package part
 
 import (
-	"sync"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	def "github.com/Mas4trt/microservices/inventory/internal/repository"
-	repoModel "github.com/Mas4trt/microservices/inventory/internal/repository/model"
 )
 
 var _ def.InventoryRepository = (*repository)(nil)
 
 type repository struct {
-	mu    sync.RWMutex
-	parts map[string]repoModel.Part
+	coll *mongo.Collection
 }
 
-func NewRepository() *repository {
+func NewRepository(db *mongo.Database) *repository {
 	return &repository{
-		parts: make(map[string]repoModel.Part),
+		coll: db.Collection("parts"),
 	}
 }

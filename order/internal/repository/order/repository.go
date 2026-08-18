@@ -1,23 +1,19 @@
 package order
 
 import (
-	"sync"
-
-	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	def "github.com/Mas4trt/microservices/order/internal/repository"
-	repoModel "github.com/Mas4trt/microservices/order/internal/repository/model"
 )
 
 var _ def.OrderRepository = (*repository)(nil)
 
 type repository struct {
-	mu     sync.RWMutex
-	orders map[uuid.UUID]repoModel.OrderDto
+	pool *pgxpool.Pool
 }
 
-func NewRepository() *repository {
+func NewRepository(pool *pgxpool.Pool) *repository {
 	return &repository{
-		orders: make(map[uuid.UUID]repoModel.OrderDto),
+		pool: pool,
 	}
 }
