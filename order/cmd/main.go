@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,13 +15,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
 	orderHandler "github.com/Mas4trt/microservices/order/internal/api/order/v1"
 	inventoryClient "github.com/Mas4trt/microservices/order/internal/client/grpc/inventory/v1"
 	paymentClient "github.com/Mas4trt/microservices/order/internal/client/grpc/payment/v1"
+	"github.com/Mas4trt/microservices/order/internal/config"
 	"github.com/Mas4trt/microservices/order/internal/migrator"
 	orderRepository "github.com/Mas4trt/microservices/order/internal/repository/order"
 	orderService "github.com/Mas4trt/microservices/order/internal/service/order"
@@ -31,26 +31,23 @@ import (
 )
 
 const (
-	httpPort          = "8081"
-	readHeaderTimeout = 5 * time.Second
-	shutdownTimeout   = 10 * time.Second
+	configPath      = "./deploy/compose/order/.env"
+	shutdownTimeout = 10 * time.Second
 )
 
 func main() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Printf("failed to load .env file: %v\n", err)
+	if err := config.Load(configPath); err != nil {
+		panic(fmt.Errorf("failed to load config: %w", err))
 	}
 
-	dbURI := os.Getenv("DB_URI")
-	migrationsDir := os.Getenv("MIGRATIONS_DIR")
-
-	pgxCfg, err := pgxpool.ParseConfig(dbURI)
+	pgxCfg, err := pgxpool.ParseConfig(config.AppConfig().Postgres.URI())
 	if err != nil {
 		log.Printf("failed to parse DB_URI: %v\n", err)
 		return
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgxCfg)
 	if err != nil {
@@ -72,7 +69,7 @@ func main() {
 		}
 	}()
 
-	migratorRunner := migrator.NewMigrator(migrationDB, migrationsDir)
+	migratorRunner := migrator.NewMigrator(migrationDB, config.AppConfig().Postgres.MigrationDir())
 	if err := migratorRunner.Up(); err != nil {
 		log.Printf("Ошибка миграции базы данных: %v\n", err)
 		return
@@ -80,7 +77,7 @@ func main() {
 	log.Println("✅ Migrations applied")
 
 	inventoryConn, err := grpc.NewClient(
-		"localhost:50050",
+		config.AppConfig().InventoryGRPC.Address(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -97,7 +94,7 @@ func main() {
 	invClient := inventoryClient.NewClient(inventoryGRPCClient)
 
 	paymentConn, err := grpc.NewClient(
-		"localhost:50051",
+		config.AppConfig().PaymentGRPC.Address(),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -132,13 +129,13 @@ func main() {
 	r.Mount("/", orderServer)
 
 	server := &http.Server{
-		Addr:              net.JoinHostPort("localhost", httpPort),
+		Addr:              config.AppConfig().OrderHTTP.Address(),
 		Handler:           r,
-		ReadHeaderTimeout: readHeaderTimeout,
+		ReadHeaderTimeout: config.AppConfig().OrderHTTP.ReadTimeout(),
 	}
 
 	go func() {
-		log.Printf("🚀 HTTP-сервер запущен на порту %s\n", httpPort)
+		log.Printf("🚀 HTTP-сервер запущен на порту %s\n", config.AppConfig().OrderHTTP.Address())
 		err := server.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Printf("❌ Ошибка запуска сервера: %v\n", err)
@@ -151,10 +148,10 @@ func main() {
 
 	log.Println("🛑 Завершение работы сервера...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	ctxShutdown, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 	defer cancel()
 
-	err = server.Shutdown(ctx)
+	err = server.Shutdown(ctxShutdown)
 	if err != nil {
 		log.Printf("❌ Ошибка при остановке сервера: %v\n", err)
 	}
