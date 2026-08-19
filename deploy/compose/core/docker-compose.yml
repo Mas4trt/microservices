@@ -2,7 +2,7 @@ services:
   placeholder:
     image: alpine
     command:
-      ["sh", "-c", "echo 'This is a placeholder service' && sleep infinity"]
+      ["sh", "-c", "echo 'This is a placeholder service'"]
     networks:
       - microservices-net
 
