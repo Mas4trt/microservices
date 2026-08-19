@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -146,7 +147,11 @@ func main() {
 	api := inventoryAPI.NewAPI(service)
 
 	if err := repo.Init(ctx, seedParts()); err != nil {
-		log.Printf("Fatal error: %v", err)
+		if errors.Is(err, model.ErrAlreadyInitialized) {
+			log.Printf("inventory already initialized")
+		} else {
+			log.Printf("failed to initialize inventory: %v", err)
+		}
 	}
 
 	inventoryV1.RegisterInventoryServiceServer(s, api)
