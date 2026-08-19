@@ -9,11 +9,13 @@ import (
 var _ def.InventoryRepository = (*repository)(nil)
 
 type repository struct {
-	coll *mongo.Collection
+	client     *mongo.Client
+	collection *mongo.Collection
 }
 
-func NewRepository(db *mongo.Database) *repository {
+func NewRepository(client *mongo.Client, dbName string) *repository {
 	return &repository{
-		coll: db.Collection("parts"),
+		client:     client,
+		collection: client.Database(dbName).Collection("parts"),
 	}
 }

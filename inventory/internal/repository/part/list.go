@@ -12,7 +12,7 @@ import (
 func (r *repository) List(ctx context.Context, filter model.PartsFilter) ([]model.Part, error) {
 	query := repoConverter.FilterToBSON(filter)
 
-	cursor, err := r.coll.Find(ctx, query)
+	cursor, err := r.collection.Find(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to find parts: %w", err)
 	}

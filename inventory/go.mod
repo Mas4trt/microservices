@@ -5,6 +5,7 @@ go 1.26.5
 require (
 	github.com/Mas4trt/microservices/shared v0.0.0-20260811182637-77ccaa050a30
 	github.com/brianvoe/gofakeit/v7 v7.15.0
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/joho/godotenv v1.5.1
 	github.com/stretchr/testify v1.11.1
 	go.mongodb.org/mongo-driver v1.17.9

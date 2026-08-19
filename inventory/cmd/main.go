@@ -10,20 +10,20 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
 	inventoryAPI "github.com/Mas4trt/microservices/inventory/internal/api/inventory/v1"
+	"github.com/Mas4trt/microservices/inventory/internal/config"
 	"github.com/Mas4trt/microservices/inventory/internal/model"
 	inventoryRepository "github.com/Mas4trt/microservices/inventory/internal/repository/part"
 	inventoryService "github.com/Mas4trt/microservices/inventory/internal/service/part"
 	inventoryV1 "github.com/Mas4trt/microservices/shared/pkg/proto/inventory/v1"
 )
 
-const grpcPort = 50050
+const configPath = "./deploy/compose/inventory/.env"
 
 func seedParts() map[string]model.Part {
 	now := time.Now()
@@ -101,37 +101,34 @@ func seedParts() map[string]model.Part {
 }
 
 func main() {
-	ctx := context.Background()
-
-	err := godotenv.Load(".env")
+	err := config.Load(configPath)
 	if err != nil {
-		log.Printf("failed to load .env file: %v\n", err)
-		return
+		panic(fmt.Errorf("failed to load config: %w", err))
 	}
 
-	dbURI := os.Getenv("MONGO_URI")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(dbURI))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(config.AppConfig().Mongo.URI()))
 	if err != nil {
-		log.Printf("failed to connect to database: %v\n", err)
+		log.Printf("failed to connect to MongoDB: %v\n", err)
 		return
 	}
 	defer func() {
-		cerr := client.Disconnect(ctx)
+		cerr := client.Disconnect(context.Background())
 		if cerr != nil {
-			log.Printf("failed to disconnect: %v\n", cerr)
+			log.Printf("failed to disconnect from MongoDB: %v\n", cerr)
 		}
 	}()
 
 	err = client.Ping(ctx, nil)
 	if err != nil {
-		log.Printf("failed to ping database: %v\n", err)
+		log.Printf("failed to ping MongoDB: %v\n", err)
 		return
 	}
+	log.Println("✅ Connected to MongoDB")
 
-	db := client.Database("inventory-service")
-
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
+	lis, err := net.Listen("tcp", config.AppConfig().InternalGRPC.Address())
 	if err != nil {
 		log.Printf("failed to listen: %v\n", err)
 		return
@@ -144,7 +141,7 @@ func main() {
 
 	s := grpc.NewServer()
 
-	repo := inventoryRepository.NewRepository(db)
+	repo := inventoryRepository.NewRepository(client, config.AppConfig().Mongo.DatabaseName())
 	service := inventoryService.NewService(repo)
 	api := inventoryAPI.NewAPI(service)
 
@@ -157,7 +154,7 @@ func main() {
 	reflection.Register(s)
 
 	go func() {
-		log.Printf("🚀 gRPC server listening on %d\n", grpcPort)
+		log.Printf("🚀 gRPC server listening on %s\n", config.AppConfig().InternalGRPC.Address())
 		if err := s.Serve(lis); err != nil {
 			log.Printf("failed to serve: %v\n", err)
 			return

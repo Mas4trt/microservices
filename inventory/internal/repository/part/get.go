@@ -15,7 +15,7 @@ import (
 func (r *repository) Get(ctx context.Context, partUUID string) (model.Part, error) {
 	var part repoModel.Part
 
-	err := r.coll.FindOne(ctx, bson.M{"uuid": partUUID}).Decode(&part)
+	err := r.collection.FindOne(ctx, bson.M{"uuid": partUUID}).Decode(&part)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return model.Part{}, model.ErrPartNotFound

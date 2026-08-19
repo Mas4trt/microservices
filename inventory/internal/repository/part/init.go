@@ -22,12 +22,12 @@ func (r *repository) Init(ctx context.Context, parts map[string]model.Part) erro
 		Options: options.Index().SetUnique(true),
 	}
 
-	_, err := r.coll.Indexes().CreateOne(ctx, indexModel)
+	_, err := r.collection.Indexes().CreateOne(ctx, indexModel)
 	if err != nil {
 		return fmt.Errorf("failed to create index: %w", err)
 	}
 
-	count, err := r.coll.CountDocuments(ctx, bson.M{}, options.Count().SetLimit(1))
+	count, err := r.collection.CountDocuments(ctx, bson.M{}, options.Count().SetLimit(1))
 	if err != nil {
 		return fmt.Errorf("failed to count parts: %w", err)
 	}
@@ -42,7 +42,7 @@ func (r *repository) Init(ctx context.Context, parts map[string]model.Part) erro
 		docs = append(docs, repoPart)
 	}
 
-	_, err = r.coll.InsertMany(ctx, docs)
+	_, err = r.collection.InsertMany(ctx, docs)
 	if err != nil {
 		return fmt.Errorf("failed to seed parts: %w", err)
 	}
